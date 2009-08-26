@@ -1,7 +1,0 @@
-Nxhtml is a Bazaar project hosted on Launchpad. Get the source here directly.
-
-cd ~/emacs.d/elisp
-mkdir nxhtml
-bzr branch lp:nxhtml
-
-https://code.launchpad.net/nxhtml

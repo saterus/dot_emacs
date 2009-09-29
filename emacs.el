@@ -34,10 +34,14 @@
 (setq line-number-mode    t)
 (setq column-number-mode  t)
 (setq show-trailing-whitespace t)
+(global-set-key [(hyper w)] 'delete-trailing-whitespace)
 
 ;; Tabs expand into spaces.
 ;; Type C-q C-i to insert a horizontal tab character.
 (setq-default indent-tabs-mode nil)
+
+;; Avoid errors with config files requiring a newline at the eof.
+(setq require-final-newline t)
 
 ;; Set-Goal-Column is disabled by default.
 ;; Use C-u C-x C-n to remove goal column
@@ -48,57 +52,99 @@
        (normal-top-level-add-subdirs-to-load-path)
        (cd "~/"))
 
-;;avoid hiding with M-h
-(setq mac-pass-command-to-system nil)
-
 ;; Line Numbers
 ;;(require 'linum)
-;;(global-linum-mode 1)
+(global-linum-mode 1)
+
+;; Fix meta/hyper keys for osx
+(if (eq system-type 'darwin)
+    (progn
+      (setq mac-pass-command-to-system nil)
+      (setq mac-command-modifier 'meta)
+      (setq mac-option-modifier 'hyper)
+      (global-set-key "\M-`" 'other-frame)))
 
 ;; Fix Copy/Paste from outside Emacs
 (global-set-key [(super x)] 'clipboard-kill-region)
 (global-set-key [(super c)] 'clipboard-kill-ring-save)
 (global-set-key [(super v)] 'clipboard-yank)
 
-;; Rebind movement keys to home row. ;;
+;; Copy 1 Line (M-f)
+(defun copy-line ()
+  (interactive)
+  (kill-ring-save (line-beginning-position) (line-end-position)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Movement Key Mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defvar movement-key-mode-map (make-keymap) "Better movement keymap.")
 
 ;; Change Movement Keys to j-k-l-;
 ;; old: C-j: newline-and-indent
 ;; old: M-j: indent-new-comment-line
-(global-set-key "\C-j" 'backward-char)
-(global-set-key "\M-j" 'backward-word)
+(define-key movement-key-mode-map "\C-j" 'backward-char)
+(define-key movement-key-mode-map "\M-j" 'backward-word)
+;; Fix C-j. Every minor mode and it's brother love to override it.
+;; (define-key slime-repl-mode-map (kbd "C-j") 'backward-char) ;; repl mode
+;; (define-key ruby-mode-map (kbd "C-j") 'backward-char) ;; ruby mode
+;; (define-key yaml-mode-map (kbd "C-j") 'backward-char) ;; yaml mode
+;; (define-key view-mode-map (kbd "C-j") 'backward-char) ;; View mode
 
 ;; old: C-k: kill-line
 ;; old: M-k: kill-paragraph
-(global-set-key "\C-k" 'next-line)
+(define-key movement-key-mode-map "\C-k" 'next-line)
 
 ;; old: C-l: recenter-top-bottom
 ;; old: M-l: downcase-word
-(global-set-key "\C-l" 'previous-line)
+(define-key movement-key-mode-map "\C-l" 'previous-line)
 
 ;; old: C-;: undefined
 ;; old: M-;: comment-dwim
-(global-set-key [(control \;)] 'forward-char)
-(global-set-key [(meta \;)] 'forward-word)
+(define-key movement-key-mode-map [(control \;)] 'forward-char)
+(define-key movement-key-mode-map [(meta \;)] 'forward-word)
 
 ;; old: C-f: forward-char
 ;; old: M-f: forward-word
-(global-set-key "\C-f" 'kill-line)
-(global-set-key "\M-f" 'copy-line)
+(define-key movement-key-mode-map "\C-f" 'kill-line)
+(define-key movement-key-mode-map "\M-f" 'copy-line)
 
 ;; old: C-b: backward-char
 ;; old: M-b: backward-word
-(global-set-key "\C-b" 'newline-and-indent)
-(global-set-key "\M-b" 'indent-new-comment-line)
+(define-key movement-key-mode-map "\C-b" 'newline-and-indent)
+(define-key movement-key-mode-map "\M-b" 'indent-new-comment-line)
 
 ;; old: C-p: previous-line
 ;; old: M-p: undefined
-(global-set-key "\C-p" 'recenter-top-bottom)
+;;(if (eq system-type 'darwin)
+;;    (global-set-key "\C-p" 'recenter)
+;;  (global-set-key "\C-p" 'recenter-top-bottom))
+(define-key movement-key-mode-map "\C-p" 'recenter-top-bottom)
 
 ;; old: C-n: next-line
 ;; old: M-n: undefined
-(global-set-key "\C-n" 'comment-dwim)
+(define-key movement-key-mode-map "\C-n" 'comment-dwim)
+
+;; ;; org-mode
+;; (add-hook 'org-mode-hook
+;;           '(lambda ()
+;;              (local-set-key "\C-n" 'org-return-indent)
+;;              (local-set-key "\C-f" 'kill-line)
+;;              (local-set-key "\C-k" 'next-line)
+;;              (local-set-key "\C-l" 'previous-line)
+;;              (local-set-key "\C-j" 'backward-char)
+;;              (local-set-key [(control c\#)] 'org-table-rotate-recalc-marks)
+;;              (local-set-key [(control \#)] 'dot-emacs)))
+
+
+(define-minor-mode movement-key-mode
+  "Rebind movement keys to home row in all modes."
+  t " Custom-keys" 'movement-key-mode-map)
+(defun turn-on-movement-key-mode () (movement-key-mode 1))
+(defun turn-off-movement-key-mode () (movement-key-mode -1))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; End Movement Key Mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 ;; Analog to C-x-o. Moves back a buffer.
 (defun prev-buffer ()
@@ -107,7 +153,7 @@
 (global-set-key "\C-xi" 'prev-buffer)
 
 ;; Setup Color Scheme for Emacs
-(add-to-list 'load-path "/usr/share/emacs/site-lisp/emacs-goodies-el/color-theme.el")
+;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/emacs-goodies-el/color-theme.el")
    (require 'color-theme)
    (setq color-theme-is-global t)
    ;;(color-theme-robin-hood)
@@ -121,9 +167,9 @@
   (color-theme-install
     '(color-theme-custom-dark
        ((foreground-color . "#DDDDDD")
-         (background-color . "#050505")
-         (background-mode . dark)
-         (cursor-color . "#888888"))
+         (background-color . "#090909")
+         (background-mode . light)
+         (cursor-color . "#444444"))
        (bold ((t (:bold t))))
        (bold-italic ((t (:italic t :bold t))))
        (default ((t (nil))))
@@ -169,10 +215,10 @@
 ;; M-g runs `M-x goto-line'
 (global-set-key "\M-g" 'goto-line)
 
-;; Copy 1 Line (M-f)
-(defun copy-line ()
-  (interactive)
-  (kill-ring-save (line-beginning-position) (line-end-position)))
+;; Insert group
+(fset 'InsertRegexGroup
+   (lambda (&optional arg) "Inserts a plain regex group. \(.+\)" (interactive "p") (kmacro-exec-ring-item (quote ("\\(.+\\)" 0 "%d")) arg)))
+(global-set-key "\M-G" 'InsertRegexGroup)
 
 ;; Move backups (file.ext~) to a central location.
 (setq backup-directory-alist
@@ -208,9 +254,6 @@
 (add-to-list 'auto-mode-alist '("\\.gemspec$" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.js.rjs" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.thrift$" . c-mode))
-(add-hook 'ruby-mode-hook
-          '(lambda ()
-             (local-set-key "\C-j" 'backward-char)))
 
 ;; Interactively Do Things (highly recommended, but not strictly required)
 (require 'ido)
@@ -246,14 +289,16 @@
 (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
 
 ;; Setup nXhtml mode for editing r/html.
-(load "~/.emacs.d/elisp/nxhtml/autostart.el")
+(if (eq system-type 'darwin)
+    (load "/opt/local/var/macports/software/emacs-app/23.1_0/Applications/MacPorts/Emacs.app/Contents/Resources/site-lisp/nxml/autostart.el")
+    (load "~/.emacs.d/elisp/nxhtml/autostart.el"))
 (setq nxhtml-global-minor-mode t
       mumamo-chunk-coloring 'submode-colored
       nxhtml-skip-welcome t
       indent-region-mode t
       rng-nxml-auto-validate-flag nil
       nxml-degraded t)
-     (add-to-list 'auto-mode-alist '("\\.html\\.erb\\'" . eruby-nxhtml-mumamo))
+     (add-to-list 'auto-mode-alist '("\\.*html\\.erb\\'" . eruby-nxhtml-mumamo))
 ;; Enable using js2 mode with nxhtml.
 ;; (load "~/.emacs.d/elisp/nxhtml/alts/js2-mumamo.elc")
 ;; (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
@@ -302,9 +347,6 @@
 ;; yaml mode
 (require 'yaml-mode)
 (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode))
-(add-hook 'yaml-mode-hook
-          '(lambda ()
-             (local-set-key "\C-j" 'backward-char)))
 
 ;; Jabber Mode
 ;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/emacs-jabber")
@@ -315,27 +357,18 @@
 (global-set-key "\C-cl" 'org-store-link)
 (global-set-key "\C-ca" 'org-agenda)
 (setq org-use-fast-todo-selection t)
-;; (setq org-log-done t)
 (setq org-return-follows-link t)
-(add-hook 'org-mode-hook
-          '(lambda ()
-             (local-set-key "\C-n" 'org-return-indent)
-             (local-set-key "\C-f" 'kill-line)
-             (local-set-key "\C-k" 'next-line)
-             (local-set-key "\C-l" 'previous-line)
-             (local-set-key "\C-j" 'backward-char)
-             (local-set-key [(control c\#)] 'org-table-rotate-recalc-marks)
-             (local-set-key [(control \#)] 'dot-emacs)))
+
 (setq org-agenda-files '("~/notes/work.org" "~/notes/home.org" ))
-;;(setq org-todo-keywords (quote ((sequence "TODO(t)" "STARTED(s!)" "DONE(d!/!)")
-;;  (sequence "WAITING(w@/!)" "SOMEDAY(S!)" "OPEN(O@)" "CANCELLED(c@/!)"))))
-;; (setq org-todo-keyword-faces (quote (("TODO" :foreground "red" :weight bold)
-;;  ("STARTED" :foreground "blue" :weight bold)
-;;  ("DONE" :foreground "forest green" :weight bold)
-;;  ("WAITING" :foreground "orange" :weight bold)
-;;  ("SOMEDAY" :foreground "magenta" :weight bold)
-;;  ("CANCELLED" :foreground "forest green" :weight bold)
-;;  ("OPEN" :foreground "blue" :weight bold))))
+(setq org-todo-keywords (quote ((sequence "TODO(t)" "STARTED(s!)" "DONE(d!/!)")
+ (sequence "WAITING(w@/!)" "SOMEDAY(S!)" "OPEN(O@)" "CANCELLED(c@/!)"))))
+(setq org-todo-keyword-faces (quote (("TODO" :foreground "red" :weight bold)
+ ("STARTED" :foreground "blue" :weight bold)
+ ("DONE" :foreground "forest green" :weight bold)
+ ("WAITING" :foreground "orange" :weight bold)
+ ("SOMEDAY" :foreground "magenta" :weight bold)
+ ("CANCELLED" :foreground "forest green" :weight bold)
+ ("OPEN" :foreground "blue" :weight bold))))
 
 ;; (defun table-of-contents-entry ()
 ;;   (interactive)
@@ -344,6 +377,32 @@
 ;;     (org-store-link nil)
 ;;     (org-insert-link "")))
 
+;;(find-file "~/.emacs")
+
+;; clojure-mode
+(add-to-list 'load-path "~/Library/Clojure/clojure-mode/clojure-mode")
+(require 'clojure-mode)
+
+;; swank-clojure
+(add-to-list 'load-path "~/Library/Clojure/swank/swank-clojure")
+(require 'swank-clojure-autoload)
+(swank-clojure-config
+ (setq swank-clojure-jar-path "~/Library/Clojure/lib/clojure.jar")
+ (setq swank-clojure-extra-classpaths
+       (list "~/Library/Clojure/lib/clojure-contrib.jar")))
+
+;; slime
+(eval-after-load "slime"
+  '(progn (slime-setup '(slime-repl))))
+
+(add-to-list 'load-path "~/Library/Clojure/slime/slime")
+(require 'slime)
+(slime-setup)
 
 
+
+
+;; Activate Movement Key Mode Last so it will always override all other minor modes.
+(define-globalized-minor-mode global-movement-key-mode movement-key-mode turn-on-movement-key-mode)
+(global-movement-key-mode t)
 

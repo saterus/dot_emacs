@@ -12,6 +12,9 @@
   (load-file (expand-file-name "~/.emacs")))
 (global-set-key [(meta \#)] 'reload-dot-emacs)
 
+;; Make emacs automatically open the symlink
+(setq vc-follow-symlinks t)
+
 ;; Make all “yes or no” prompts show “y or n” instead.
 (fset 'yes-or-no-p 'y-or-n-p)
 
@@ -47,8 +50,19 @@
 ;; Use C-u C-x C-n to remove goal column
 (put 'set-goal-column 'disabled nil)
 
+(defvar site-lisp
+  (if (eq system-type 'darwin)
+      (concat (getenv "EMACS_HOME") "/../Resources/site-lisp")
+    "/usr/share/emacs-snapshot/site-lisp"))
+(defvar clojure-home
+  (if (eq system-type 'darwin)
+      "~/Library/Clojure/"
+    nil)) ;; todo: download clojure for linux.
+
 ;; Recursively add subdirectories to the path.
 (progn (cd "~/.emacs.d/elisp")
+       (normal-top-level-add-subdirs-to-load-path)
+       (cd site-lisp)
        (normal-top-level-add-subdirs-to-load-path)
        (cd "~/"))
 
@@ -73,6 +87,31 @@
 (defun copy-line ()
   (interactive)
   (kill-ring-save (line-beginning-position) (line-end-position)))
+
+;; Interactively Do Things (highly recommended, but not strictly required)
+(require 'ido)
+(setq ido-enable-flex-matching t) ; fuzzy matching is a must have
+;; Setup Ido-Mode for M-x COMMAND
+(setq ido-execute-command-cache nil)
+(defun ido-execute-command ()
+  (interactive)
+  (call-interactively
+   (intern
+    (ido-completing-read
+     "M-x "
+     (progn
+       (unless ido-execute-command-cache
+	 (mapatoms (lambda (s)
+		     (when (commandp s)
+		       (setq ido-execute-command-cache
+			     (cons (format "%S" s) ido-execute-command-cache))))))
+       ido-execute-command-cache)))))
+(add-hook 'ido-setup-hook
+	  (lambda ()
+	    (setq ido-enable-flex-matching t)
+	    (global-set-key "\M-x" 'ido-execute-command)))
+(ido-load-history t)
+(ido-mode t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Movement Key Mode
@@ -124,18 +163,6 @@
 ;; old: M-n: undefined
 (define-key movement-key-mode-map "\C-n" 'comment-dwim)
 
-;; ;; org-mode
-;; (add-hook 'org-mode-hook
-;;           '(lambda ()
-;;              (local-set-key "\C-n" 'org-return-indent)
-;;              (local-set-key "\C-f" 'kill-line)
-;;              (local-set-key "\C-k" 'next-line)
-;;              (local-set-key "\C-l" 'previous-line)
-;;              (local-set-key "\C-j" 'backward-char)
-;;              (local-set-key [(control c\#)] 'org-table-rotate-recalc-marks)
-;;              (local-set-key [(control \#)] 'dot-emacs)))
-
-
 (define-minor-mode movement-key-mode
   "Rebind movement keys to home row in all modes."
   t " Custom-keys" 'movement-key-mode-map)
@@ -153,21 +180,16 @@
 (global-set-key "\C-xi" 'prev-buffer)
 
 ;; Setup Color Scheme for Emacs
-;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/emacs-goodies-el/color-theme.el")
-   (require 'color-theme)
-   (setq color-theme-is-global t)
-   ;;(color-theme-robin-hood)
-;;  (color-theme-billw)
-;;    (color-theme-arjen)
-   ;; (color-theme-comidia)
+(require 'color-theme)
+(setq color-theme-is-global t)
 ;;    (set-frame-font "Consolas-13")
-   (set-face-attribute 'default nil :height 100)
+(set-face-attribute 'default nil :height 100)
 (defun color-theme-custom-dark ()
   (interactive)
   (color-theme-install
     '(color-theme-custom-dark
        ((foreground-color . "#DDDDDD")
-         (background-color . "#090909")
+         (background-color . "#0F0F0F")
          (background-mode . light)
          (cursor-color . "#444444"))
        (bold ((t (:bold t))))
@@ -197,6 +219,12 @@
        (isearch-lazy-highlight-face ((t (:background "#163B65" :foreground "#FFFFFF"))))
        (ido-first-match ((t (:foreground "#eeee33"))))
        (ido-only-match ((t (:foreground "#cc5500"))))
+       (w3m-anchor-face ((t (:foreground "#803A00"))))
+       (w3m-arrived-anchor-face ((t (:foreground "#501A00"))))
+       (w3m-header-line-location-content-face ((t (:background "#0F0F0F"))))
+       (w3m-header-line-location-title-face ((t (:background "#000000"))))
+       (highlight-changes-face ((t (:background "#201010"))))
+       (highlight-changes-delete-face ((t (nil))))
        (mumamo-background-chunk-major ((f nil)))
        (mumamo-background-chunk-submode ((((class color) (min-colors 88) (background dark)) (:background "#101010"))))
        (minibuffer-prompt ((t (:foreground "#2070B8"))))
@@ -230,23 +258,18 @@
 ;; Use C-x C-f "/su::/path/to/file".
 (require 'tramp)
 (setq tramp-default-method "ssh")
-;; (setq tramp-debug-buffer t)
-;; (setq tramp-verbose 10)
 
-;; (defun long-line-hook
-;;   (lambda ()
-;;     (font-lock-add-keywords nil
-;;       '(("^[^\n]\\{80\\}\\(.*\\)$" 1 font-lock-warning-face t)))))
-;; (add-hook 'ruby-mode-hook 'long-line-hook)
-;; (add-hook 'emacs-lisp-mode-hook 'long-line-hook)
-;; (add-hook 'lisp-mode-hook 'long-line-hook)
+;; Open all dired directories in the same buffer
+(add-hook 'dired-mode-hook
+ (lambda ()
+  (define-key dired-mode-map (kbd "<return>")
+    'dired-find-alternate-file) ; was dired-advertised-find-file
+  (define-key dired-mode-map (kbd "^")
+    (lambda () (interactive) (find-alternate-file "..")))
+  ; was dired-up-directory
+ ))
+(put 'dired-find-alternate-file 'disabled nil)
 
-;; Short name for Scroll Bar Mode Toggle
-;; When Emacs first starts in daemon mode, there is no window to remove the
-;; scroll-bar from, so the first client always has a scroll-bar.
-(defalias 'sbm 'scroll-bar-mode)
-
-;;; Ruby Stuff
 
 ;; Rake files are ruby, too, as are gemspecs.
 (add-to-list 'auto-mode-alist '("\\.rake$" . ruby-mode))
@@ -255,30 +278,6 @@
 (add-to-list 'auto-mode-alist '("\\.js.rjs" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.thrift$" . c-mode))
 
-;; Interactively Do Things (highly recommended, but not strictly required)
-(require 'ido)
-(setq ido-enable-flex-matching t) ; fuzzy matching is a must have
-;; Setup Ido-Mode for M-x COMMAND
-(setq ido-execute-command-cache nil)
-(defun ido-execute-command ()
-  (interactive)
-  (call-interactively
-   (intern
-    (ido-completing-read
-     "M-x "
-     (progn
-       (unless ido-execute-command-cache
-	 (mapatoms (lambda (s)
-		     (when (commandp s)
-		       (setq ido-execute-command-cache
-			     (cons (format "%S" s) ido-execute-command-cache))))))
-       ido-execute-command-cache)))))
-(add-hook 'ido-setup-hook
-	  (lambda ()
-	    (setq ido-enable-flex-matching t)
-	    (global-set-key "\M-x" 'ido-execute-command)))
-(ido-load-history t)
-(ido-mode t)
 
 ;; Setup Rinari: Rails editing mode.
 ;; (add-to-list 'load-path "/emacs/elisp/rinari")
@@ -299,12 +298,6 @@
       rng-nxml-auto-validate-flag nil
       nxml-degraded t)
      (add-to-list 'auto-mode-alist '("\\.*html\\.erb\\'" . eruby-nxhtml-mumamo))
-;; Enable using js2 mode with nxhtml.
-;; (load "~/.emacs.d/elisp/nxhtml/alts/js2-mumamo.elc")
-;; (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
-;; (setq mumamo-major-modes '((asp-js-mode javascript-mode)
-;;               (javascript-mode js2-mode js2-fl-mode ecmascript-mode)
-;;               (java-mode jde-mode java-mode)))
 
 ;; This adds an extra keybinding to interactive search (C-s).
 ;; That runs occur on the current search string/regexp.
@@ -370,39 +363,51 @@
  ("CANCELLED" :foreground "forest green" :weight bold)
  ("OPEN" :foreground "blue" :weight bold))))
 
-;; (defun table-of-contents-entry ()
-;;   (interactive)
-;;   (save-excursion
-;;     (isearch-forward)
-;;     (org-store-link nil)
-;;     (org-insert-link "")))
-
-;;(find-file "~/.emacs")
-
 ;; clojure-mode
-(add-to-list 'load-path "~/Library/Clojure/clojure-mode/clojure-mode")
-(require 'clojure-mode)
+(unless (eq clojure-home nil)
+  (add-to-list 'load-path "~/Library/Clojure/clojure-mode/clojure-mode")
+  (require 'clojure-mode)
 
-;; swank-clojure
-(add-to-list 'load-path "~/Library/Clojure/swank/swank-clojure")
-(require 'swank-clojure-autoload)
-(swank-clojure-config
- (setq swank-clojure-jar-path "~/Library/Clojure/lib/clojure.jar")
- (setq swank-clojure-extra-classpaths
-       (list "~/Library/Clojure/lib/clojure-contrib.jar")))
+  ;; swank-clojure
+  (add-to-list 'load-path "~/Library/Clojure/swank/swank-clojure")
+  (require 'swank-clojure-autoload)
+  (swank-clojure-config
+   (setq swank-clojure-jar-path "~/Library/Clojure/lib/clojure.jar")
+   (setq swank-clojure-extra-classpaths
+         (list "~/Library/Clojure/lib/clojure-contrib.jar" "~/rapleaf/jars/dev")))
 
-;; slime
-(eval-after-load "slime"
-  '(progn (slime-setup '(slime-repl))))
+  ;; slime
+  (eval-after-load "slime"
+    '(progn (slime-setup '(slime-repl))))
 
-(add-to-list 'load-path "~/Library/Clojure/slime/slime")
-(require 'slime)
-(slime-setup)
+  (add-to-list 'load-path "~/Library/Clojure/slime/slime")
+  (require 'slime)
+  (slime-setup))
 
+;; w3m
+;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/w3m")
+(if window-system
+   (require 'w3m-load))
+(global-set-key "\C-xm" 'browse-url-at-point)
+(setq w3m-use-cookies t)
+(setq w3m-use-title-buffer-name t)
+(setq w3m-use-tab nil)
+(setq w3m-use-tab-menubar nil)
+(setq w3m-default-display-inline-images nil)
+(setq w3m-use-favicon nil)
 
+;; Highlight changes mode
+(global-highlight-changes-mode t)
+(global-set-key [(hyper h)] 'highlight-changes-mode)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;             PUT NOTHING BELOW THIS POINT!                  ;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Activate Movement Key Mode Last so it will always override all other minor modes.
 (define-globalized-minor-mode global-movement-key-mode movement-key-mode turn-on-movement-key-mode)
 (global-movement-key-mode t)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;             PUT NOTHING BELOW THIS POINT!                  ;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

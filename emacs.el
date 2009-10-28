@@ -74,9 +74,11 @@
 (if (eq system-type 'darwin)
     (progn
       (setq mac-pass-command-to-system nil)
-      (setq mac-command-modifier 'meta)
+      (global-set-key "\C-q" 'quoted-insert)
+      (setq mac-command-modifier 'control)
+      (setq mac-control-modifier 'meta)
       (setq mac-option-modifier 'hyper)
-      (global-set-key "\M-`" 'other-frame)))
+      (global-set-key [(control \`)] 'other-frame)))
 
 ;; Fix Copy/Paste from outside Emacs
 (global-set-key [(super x)] 'clipboard-kill-region)
@@ -87,6 +89,27 @@
 (defun copy-line ()
   (interactive)
   (kill-ring-save (line-beginning-position) (line-end-position)))
+
+;; Beautiful little gem from emacs.wordpress.com
+(defun eval-and-replace ()
+  "Replace the preceding sexp with its value."
+  (interactive)
+  (backward-kill-sexp)
+  (condition-case nil
+      (prin1 (eval (read (current-kill 0)))
+             (current-buffer))
+    (error (message "Invalid expression")
+           (insert (current-kill 0)))))
+(global-set-key (kbd "C-c e") 'eval-and-replace)
+
+;; Kill buffer, window, and go back to previous buffer. Handy for temporary buffers or dired-open buffers.
+(defun kill-buffer-and-window ()
+  "Kill current buffer, then the current window, then move back one buffer."
+  (interactive)
+  (kill-buffer)
+  (delete-window)
+  (prev-buffer))
+(global-set-key "\C-x9" 'kill-buffer-and-window)
 
 ;; Interactively Do Things (highly recommended, but not strictly required)
 (require 'ido)
@@ -117,12 +140,48 @@
 ;; Movement Key Mode
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defvar movement-key-mode-map (make-keymap) "Better movement keymap.")
+;; ;
+;; ;  M-h: mark paragraph
+;; ;  M-j: "M-j runs the command backward-word"
+;; ;  M-k: "M-k runs the command kill-sentence"
+;; ;  M-l: "M-l runs the command downcase-word"
+;; ;  M-;: "M-; runs the command forward-word"
+;; ;  M-': "M-' runs the command abbrev-prefix-mark"
+;; ;; Change Movement Keys to M- (j-k-l-;)
+
+;; (define-key movement-key-mode-map "\M-h" 'backward-word)
+;; (define-key movement-key-mode-map "\M-j" 'backward-char)
+;; (define-key movement-key-mode-map "\M-k" 'next-line)
+;; (define-key movement-key-mode-map "\M-l" 'previous-line)
+;; (define-key movement-key-mode-map [(meta \;)] 'forward-char)
+;; (define-key movement-key-mode-map [(meta \')] 'forward-word)
+
+;; ;;(define-key movement-key-mode-map "\C-h" 'backward-word)
+;; (define-key movement-key-mode-map "\C-j" 'mark-paragraph)
+;; (define-key movement-key-mode-map "\C-k" 'kill-sentence)
+;; (define-key movement-key-mode-map "\C-l" 'downcase-word)
+;; (define-key movement-key-mode-map [(control \;)] nil)
+;; (define-key movement-key-mode-map [(control \')] nil)
+
+;; (define-key movement-key-mode-map "\C-a" 'backward-sentence)
+;; (define-key movement-key-mode-map "\C-e" 'forward-sentence)
+;; (define-key movement-key-mode-map "\M-a" 'move-beginning-of-line)
+;; (define-key movement-key-mode-map "\M-e" 'move-end-of-line)
+
+;; "M-a runs the command backward-sentence"
+;; "M-e runs the command forward-sentence"
+;; "C-a runs the command move-beginning-of-line"
+;; "C-e runs the command move-end-of-line"
+(define-key movement-key-mode-map "\C-h" 'backward-word)
+(define-key movement-key-mode-map [(control \')] 'forward-word)
+
+(define-key movement-key-mode-map [(meta \h)] help-map)
 
 ;; Change Movement Keys to j-k-l-;
 ;; old: C-j: newline-and-indent
 ;; old: M-j: indent-new-comment-line
 (define-key movement-key-mode-map "\C-j" 'backward-char)
-(define-key movement-key-mode-map "\M-j" 'backward-word)
+;;(define-key movement-key-mode-map "\M-j" 'backward-word)
 ;; Fix C-j. Every minor mode and it's brother love to override it.
 ;; (define-key slime-repl-mode-map (kbd "C-j") 'backward-char) ;; repl mode
 ;; (define-key ruby-mode-map (kbd "C-j") 'backward-char) ;; ruby mode
@@ -140,7 +199,7 @@
 ;; old: C-;: undefined
 ;; old: M-;: comment-dwim
 (define-key movement-key-mode-map [(control \;)] 'forward-char)
-(define-key movement-key-mode-map [(meta \;)] 'forward-word)
+;;(define-key movement-key-mode-map [(meta \;)] 'forward-word)
 
 ;; old: C-f: forward-char
 ;; old: M-f: forward-word
@@ -163,6 +222,15 @@
 ;; old: M-n: undefined
 (define-key movement-key-mode-map "\C-n" 'comment-dwim)
 
+;; Make iBuffer the fefault buffer view.
+(define-key movement-key-mode-map "\C-x\C-b" 'ibuffer)
+
+;; find-grep-dired is too useful to not have a hotkey
+(define-key movement-key-mode-map "\C-xf" 'find-grep-dired)
+
+;; I think id-mode overrides repeat
+(define-key movement-key-mode-map "\C-xz" 'repeat)
+
 (define-minor-mode movement-key-mode
   "Rebind movement keys to home row in all modes."
   t " Custom-keys" 'movement-key-mode-map)
@@ -178,6 +246,10 @@
   (interactive)
   (other-window -1))
 (global-set-key "\C-xi" 'prev-buffer)
+
+;; Shows unbound keys - (describe-unbound-keys)
+;;(require 'unbound)
+;;(describe-unbound-keys 5)
 
 ;; Setup Color Scheme for Emacs
 (require 'color-theme)
@@ -225,6 +297,7 @@
        (w3m-header-line-location-title-face ((t (:background "#000000"))))
        (highlight-changes-face ((t (:background "#201010"))))
        (highlight-changes-delete-face ((t (nil))))
+       (ascii-non-ascii-face ((t (:background "#FFFF00"))))
        (mumamo-background-chunk-major ((f nil)))
        (mumamo-background-chunk-submode ((((class color) (min-colors 88) (background dark)) (:background "#101010"))))
        (minibuffer-prompt ((t (:foreground "#2070B8"))))
@@ -247,6 +320,27 @@
 (fset 'InsertRegexGroup
    (lambda (&optional arg) "Inserts a plain regex group. \(.+\)" (interactive "p") (kmacro-exec-ring-item (quote ("\\(.+\\)" 0 "%d")) arg)))
 (global-set-key "\M-G" 'InsertRegexGroup)
+
+(defun convert-thrift (arg filename)
+  "Run replacement for data units and structs"
+  (interactive "M\Which test profile? ")
+  (let ((current-dir (pwd))
+        (type (if (eq arg nil) "struct" arg)))
+    (cd "/Users/alex/rapleaf/spider/union/")
+    (shell-command-on-region (region-beginning) (region-end) (concat "ruby script/convert_structs.rb " type " " filename) "*Messages*" 1)
+    (cd current-dir)))
+(defun convert-du (filename)
+  (interactive "M\Which test profile? ")
+  (convert-thrift "du" filename))
+(defun convert-struct (filename)
+  (interactive "M\Which test profile? ")
+  (convert-thrift "struct" filename))
+(defun convert-pedigree (filename)
+  (interactive "M\Which test profile? ")
+  (convert-thrift "pedigree" filename))
+(global-set-key "\C-cd" 'convert-du)
+(global-set-key "\C-cs" 'convert-struct)
+(global-set-key "\C-cp" 'convert-pedigree)
 
 ;; Move backups (file.ext~) to a central location.
 (setq backup-directory-alist
@@ -276,6 +370,8 @@
 (add-to-list 'auto-mode-alist '("Rakefile$" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.gemspec$" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.js.rjs" . ruby-mode))
+(add-to-list 'auto-mode-alist '("irb_tempfile\\..*" . ruby-mode))
+(add-to-list 'auto-mode-alist '("\\.irbrc$*" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.thrift$" . c-mode))
 
 
@@ -399,6 +495,10 @@
 ;; Highlight changes mode
 (global-highlight-changes-mode t)
 (global-set-key [(hyper h)] 'highlight-changes-mode)
+
+;; Ascii Mode
+;;(require 'ascii)
+;;(add-to-list 'load-path "~/.emacs.d/elisp/ascii.el")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;             PUT NOTHING BELOW THIS POINT!                  ;;;;;;;;;;

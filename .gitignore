@@ -1,0 +1,8 @@
+.emacs
+.emacs.d
+.svn
+auto-save-list
+stickies
+!emacs.el.d/elisp/stickies
+tramp
+

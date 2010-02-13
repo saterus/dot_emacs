@@ -91,6 +91,9 @@
 (global-set-key [(super c)] 'clipboard-kill-ring-save)
 (global-set-key [(super v)] 'clipboard-yank)
 
+(add-to-list 'load-path "~/.emacs.d/elisp/browse-kill-ring/")
+(require 'browse-kill-ring)
+
 ;; Copy 1 Line (M-f)
 (defun copy-line ()
   (interactive)
@@ -157,7 +160,12 @@
                             (local-set-key [(meta I)] 'ri-ruby-show-args)))
 (eval-after-load "ruby-electric"
   '(progn
-     (define-key ruby-mode-map [(control j)] 'backward-char)))
+     (define-key ruby-mode-map [(control j)] 'backward-char)
+     (define-key ruby-mode-map [(control x) (control t)] 'transpose-lines)))
+
+(add-to-list 'load-path "~/.emacs.d/elisp/rdebug/")
+;;(autoload 'rdebug "rdebug.el" "rdebug mode" t)
+(require 'rdebug)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Movement Key Mode
@@ -306,6 +314,11 @@
        ;; (erc-pal-face ((t (:foreground "pale green"))))
        ;; (erc-prompt-face ((t (:bold t :foreground "light blue" :weight bold))))
        ;; (erc-underline-face ((t (:underline t))))
+       (twitter-header-face ((t (:background "#0F0F0F"))))
+       (twitter-user-name-face ((t (:background "#0F0F0F"))))
+       (twitter-time-stamp-face ((t (:background "#0F0F0F"))))
+       (twitter-status-overlong-face ((t (:background "#0F0F0F"))))
+       (twitter-new-tweets-sep-face ((t (:background "#0F0F0F"))))
        (show-paren-match-face ((t (:bold t :foreground "#ffffff"
                                          :background "#050505")))))))
   (color-theme-custom-dark)
@@ -341,8 +354,8 @@
   (interactive "P")
   (let ((current-dir (substring (pwd) 10 -1))
         (filename (if use-file (read-from-minibuffer "Which test profile (add test_profiles/)? "))))
-    (cd "/Users/alex/rapleaf/spider/union/")
-    (shell-command-on-region (region-beginning) (region-end) (concat "ruby /Users/alex/rapleaf/spider/union/script/convert_structs.rb " filename) "*Messages*" 1)
+    (cd "/Users/alex/rapleaf/spider/new_union/")
+    (shell-command-on-region (region-beginning) (region-end) (concat "ruby -W0 /Users/alex/rapleaf/spider/new_union/script/convert_structs.rb " filename) "*Messages*" 1)
     (cd current-dir)))
 (global-set-key "\C-ct" 'convert-thrift-struct)
 
@@ -375,6 +388,12 @@
       (wrap-region b e "'" "'")
     (wrap-region b e "\"" "\"")))
 (global-set-key [(control \")] 'wrap-with-quotes)
+
+(defun delete-horizontal-whitespace-forward ()
+     "Deletes all spaces and tabs between point and next non-whitespace char."
+     (interactive "*")
+     (delete-region (point) (progn (skip-chars-forward " \t") (point))))
+(global-set-key [(control shift \ )] 'delete-horizontal-whitespace-forward)
 
 ;; Move backups (file.ext~) to a central location.
 (setq backup-directory-alist
@@ -650,6 +669,27 @@
 (setq erc-auto-set-away t)
 (setq erc-autoaway-use-emacs-idle t)
 (setq erc-autoaway-message "out")
+
+;; twitter.el
+(add-to-list 'load-path "~/.emacs.d/elisp/twitter/")
+(autoload 'twitter-get-friends-timeline "twitter" nil t)
+(autoload 'twitter-status-edit "twitter" nil t)
+(global-set-key "\C-xt" 'twitter-get-friends-timeline)
+(add-hook 'twitter-status-edit-mode-hook 'longlines-mode)
+
+;; pairing bot from @technomancy
+(defun pairing-bot ()
+  "If you can't pair program with a human, use this instead."
+  (interactive)
+  (message (if (y-or-n-p "Do you have a test for that? ") "Good." "Bad!")))
+
+;; highlihghts a column with a line. 
+;; kind of annoying.
+;; (add-to-list 'load-path "~/.emacs.d/elisp/column-marker/")
+;; (require 'column-marker)
+;; (add-hook 'ruby-mode-hook (lambda () (interactive) (column-marker-1 50)))
+;; (add-hook 'ruby-mode-hook (lambda () (interactive) (column-marker-2 80)))
+;; (add-hook 'ruby-mode-hook (lambda () (interactive) (column-marker-3 120)))
 
 ;; Ascii Mode
 ;;(require 'ascii)

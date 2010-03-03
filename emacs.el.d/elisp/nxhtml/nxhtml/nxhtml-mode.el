@@ -57,44 +57,53 @@
 ;;
 ;;; Code:
 
-(eval-when-compile (require 'mumamo))
-(eval-when-compile
-  (require 'cl)
-  (require 'appmenu-fold)
-  ;;(require 'nxhtml-menu)
-  (require 'fold-dwim)
-  (require 'typesetter nil t)
-  ;;(require 'outline)
-  (unless (or (< emacs-major-version 23)
-              (featurep 'nxhtml-autostart))
-    (let ((efn (expand-file-name
-                "../autostart.el"
-                (file-name-directory
-                 (or load-file-name
-                     (when (boundp 'bytecomp-filename) bytecomp-filename)
-                     buffer-file-name)))))
-      (message "efn=%s" efn)
-      (load efn))
-    (require 'rng-valid)
-    (require 'rng-nxml)
-    (require 'html-toc nil t)
-    (require 'html-pagetoc nil t)))
+(eval-when-compile (require 'cl))
+(eval-when-compile (require 'hideshow))
 
-(require 'typesetter nil t)
+(eval-when-compile (require 'appmenu-fold nil t))
+(eval-when-compile (require 'fold-dwim nil t))
+(eval-when-compile (require 'foldit nil t))
+(eval-when-compile (require 'html-pagetoc nil t))
+(eval-when-compile (require 'html-toc nil t))
+(eval-when-compile (require 'mumamo nil t))
+(eval-when-compile (require 'mlinks nil t))
+(eval-when-compile (require 'nxhtml-base))
+;;(eval-when-compile (require 'nxhtml-menu)) ;; recursive load
+(eval-when-compile (require 'ourcomments-util nil t))
+(eval-and-compile (require 'typesetter nil t))
+(eval-when-compile (require 'xhtml-help nil t))
+(eval-when-compile (require 'popcmp nil t))
+;; (eval-when-compile
+;;   (unless (or (< emacs-major-version 23)
+;;               (boundp 'nxhtml-menu:version)
+;;               (featurep 'nxhtml-autostart))
+;;     (let ((efn (expand-file-name
+;;                 "../autostart.el"
+;;                 (file-name-directory
+;;                  (or load-file-name
+;;                      (when (boundp 'bytecomp-filename) bytecomp-filename)
+;;                      buffer-file-name)))))
+;;       (message "efn=%s" efn)
+;;       (load efn))
+;;     (require 'rng-valid)
+;;     (require 'rng-nxml)))
+
 (require 'button)
 (require 'loadhist)
-(require 'nxml-mode)
+(require 'nxml-mode nil t)
+(require 'rng-nxml nil t)
+(require 'rng-valid nil t)
 
 ;; Require nxml things conditionally to silence byte compiler under
 ;; Emacs 22.
-(require 'rngalt)
+(eval-and-compile (require 'rngalt nil t))
 
 (require 'url-parse)
 (require 'url-expand)
-(require 'popcmp)
-(eval-when-compile (require 'html-imenu))
-(eval-when-compile (require 'tidy-xhtml))
-(eval-when-compile (require 'html-quote))
+(require 'popcmp nil t)
+(eval-when-compile (require 'html-imenu nil t))
+(eval-when-compile (require 'tidy-xhtml nil t))
+(eval-when-compile (require 'html-quote nil t))
 
 (defun nxhtml-version ()
   "Show nxthml version."
@@ -106,30 +115,103 @@
 ;;(fset 'nxhtml-nxml-fontify-attribute (symbol-function 'nxml-fontify-attribute))
 
 
+(defun nxhtml-turn-onoff-tag-do-also (on)
+  (add-hook 'nxhtml-mode-hook 'nxhtml-check-tag-do-also)
+  (dolist (b (buffer-list))
+    (when (with-current-buffer b
+            (eq major-mode 'nxhtml-mode))
+      (if on
+          (progn
+            (add-hook 'rngalt-complete-tag-hooks 'nxhtml-complete-tag-do-also t t)
+            )
+        (remove-hook 'rngalt-complete-tag-hooks 'nxhtml-complete-tag-do-also t)
+        ))))
+
+(define-toggle nxhtml-tag-do-also t
+  "When completing tag names do some more if non-nil.
+For some tag names additional things can be done at completion to
+speed writing up.  For example for an <img ...> tag `nxhtml-mode'
+can prompt for src attribute and add width and height attributes
+if this attribute points to a local file.
+
+You can add additional elisp code for completing to
+`nxhtml-complete-tag-do-also'."
+  :set (lambda (symbol value)
+         (set-default symbol value)
+         (nxhtml-turn-onoff-tag-do-also value))
+  :group 'nxhtml)
+
+(defun nxhtml-check-tag-do-also ()
+  (when nxhtml-tag-do-also
+    (nxhtml-turn-onoff-tag-do-also t)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Folding etc. This part is taken from
+;; Folding etc.
+
+
+;; This part is origially taken from
 ;; http://www.emacswiki.org/cgi-bin/wiki/NxmlModeForXHTML and was
-;; originally written by Peter Heslin. It requires fold-dwim.el.
+;; originally written by Peter Heslin, but has been changed rather
+;; much.
+
+;; (defun nxhtml-hs-adjust-beg-func (pos)
+;;   (save-excursion
+;;     (save-match-data
+;;       ;; (search-backward "<" nil t)
+;;       ;; (forward-char)
+;;       ;; (search-forward ">" nil t)
+;;       )
+;;     (point)))
+
+(defun nxhtml-hs-forward-sexp-func (pos)
+  (nxhtml-hs-forward-element))
+
+(defun nxhtml-hs-forward-element ()
+  (let ((nxml-sexp-element-flag))
+    (setq nxml-sexp-element-flag (not (looking-at "<!--")))
+    (unless nil ;;(looking-at outline-regexp)
+      ;;(condition-case nil
+          (nxml-forward-balanced-item 1)
+        ;;(error nil))
+      )))
 
 (defun nxhtml-setup-for-fold-dwim ()
   (make-local-variable 'outline-regexp)
   (setq outline-regexp "\\s *<\\([h][1-6]\\|html\\|body\\|head\\)\\b")
   (make-local-variable 'outline-level)
   (setq outline-level 'nxhtml-outline-level)
-  (outline-minor-mode 1)
-  (hs-minor-mode 1)
+  ;;(outline-minor-mode 1)
+  ;;(hs-minor-mode 1)
+  (setq hs-special-modes-alist (assq-delete-all 'nxhtml-mode hs-special-modes-alist))
   (add-to-list 'hs-special-modes-alist
                '(nxhtml-mode
-                 "<!--\\|<[^/>]>\\|<[^/][^>]*[^/]>"
+                 ;;"<!--\\|<[^/>]>\\|<[^/][^>]*[^/]>"
+                 "<!--\\|<[^/>]>\\|<[^/][^>]*"
                  "</\\|-->"
                  "<!--" ;; won't work on its own; uses syntax table
-                 (lambda (arg) (nxhtml-hs-forward-element))
-                 nil))
+                 nxhtml-hs-forward-sexp-func
+                 nil ;nxhtml-hs-adjust-beg-func
+                 ))
+  (set (make-local-variable 'hs-set-up-overlay) 'nxhtml-hs-set-up-overlay)
+  (put 'hs-set-up-overlay 'permanent-local t)
   (when (featurep 'appmenu-fold)
     (appmenu-fold-setup))
-  )
+  (foldit-mode 1))
+
+(defun nxhtml-hs-start-tag-end (beg)
+  (save-excursion
+    (save-match-data
+      (goto-char beg)
+      (or (search-forward ">" (line-end-position) t)
+          (line-end-position)))))
+
+(defun nxhtml-hs-set-up-overlay (ovl)
+  (overlay-put ovl 'priority (1+ mlinks-link-overlay-priority))
+  (when foldit-mode
+    (setq foldit-hs-start-tag-end-func 'nxhtml-hs-start-tag-end)
+    (foldit-hs-set-up-overlay ovl)))
 
 (defun nxhtml-outline-level ()
   ;;(message "nxhtml-outline-level=%s" (buffer-substring (match-beginning 0) (match-end 0)))(sit-for 2)
@@ -140,14 +222,6 @@
   ;;     0))
   8)
 
-
-(defun nxhtml-hs-forward-element ()
-  (let ((nxml-sexp-element-flag))
-    (setq nxml-sexp-element-flag (not (looking-at "<!--")))
-    (unless (looking-at outline-regexp)
-      (condition-case nil
-          (nxml-forward-balanced-item 1)
-        (error nil)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -215,12 +289,13 @@
          (normal "Normal page")
          ;;(vlhead "Validation header")
          ;;popcmp-popup-completion
-         (initial (unless popcmp-popup-completion normal))
+         (initial nil) ;;(unless popcmp-popup-completion normal))
          (hist (if (and (boundp 'mumamo-multi-major-mode) mumamo-multi-major-mode)
                    ;;(list vlhead frames normal)
                    (list frames normal)
                  (list frames normal)))
-         res)
+         res
+         (completion-ignore-case t))
     (setq res (popcmp-completing-read "Insert: " hist nil t initial (cons 'hist (length hist))))
     (cond ((string= res frames)
            (nxhtml-insert-empty-frames-page))
@@ -263,9 +338,9 @@
 ;;                    'xhtml-help-show-css-ref))))
 
 ;; This should be run in `change-major-mode-hook'."
-(defun nxhtml-change-mode ()
-  (when (fboundp 'mlinks-mode)
-    (mlinks-mode 0)))
+;; (defun nxhtml-change-mode ()
+;;   (when (fboundp 'mlinks-mode)
+;;     (mlinks-mode 0)))
 
 (when (< emacs-major-version 23)
   (defun nxml-change-mode ()
@@ -298,7 +373,7 @@ when editing XHTML files.\\<nxhtml-mode-map>
 To see an overview in html format do \\[nxhtml-overview].
 
 * Note: Please observe that when loading nXhtml some file
-  associations are done, see `nxhtml-auto-mode-alist'.
+  associations are done, see `nxhtml-setup-file-assoc'.
 
 The nXhtml menu is added by this mode \(or actually the minor
 mode `nxhtml-minor-mode') and gives quick access and an overview
@@ -395,15 +470,15 @@ point in the mumamo chunk you want to know the key bindings in.
        nxhtml-heading-element-name-regexp)
   (when (fboundp 'nxml-change-mode)
     (add-hook 'change-major-mode-hook 'nxml-change-mode nil t))
-  (add-hook 'change-major-mode-hook 'nxhtml-change-mode nil t)
+  ;;(add-hook 'change-major-mode-hook 'nxhtml-change-mode nil t)
   (when (featurep 'rngalt)
     (add-hook 'nxml-completion-hook 'rngalt-complete nil t))
   ;;(define-key nxhtml-mode-map [(meta tab)] 'nxml-complete)
-  (nxhtml-minor-mode 1)
+  ;;(nxhtml-minor-mode 1)
   (when (and nxhtml-use-imenu
              (featurep 'html-imenu))
     (add-hook 'nxhtml-mode-hook 'html-imenu-setup nil t))
-  (mlinks-mode 1)
+  ;;(mlinks-mode 1)
   (nxhtml-setup-for-fold-dwim)
   (when (featurep 'rngalt)
     (set (make-local-variable 'rngalt-completing-read-tag) 'nxhtml-completing-read-tag)
@@ -770,6 +845,7 @@ just copying region when you press C-c."
          (parsed-url (url-generic-parse-url url-beginning))
          (beg-type (url-type parsed-url))
          (allowed-u allowed)
+         (completion-ignore-case t)
          choices
          choice)
     ;; (url-type (url-generic-parse-url "#some-id"))
@@ -1569,6 +1645,19 @@ by `nxml-complete' (with the special setup of this function for
 The list is handled as an association list, ie only the first
 occurence of a tag name is used.")
 
+(defun nxhtml-complete-tag-do-also-for-state-completion (dummy-completed)
+  "Add this to state completion functions completed hook."
+  (when (and nxhtml-tag-do-also
+             (derived-mode-p 'nxhtml-mode))
+    ;; Find out tag
+    (let ((tag nil))
+      (save-match-data
+        ;;(when (looking-back "<\\([a-z]+\\)[[:blank:]]+")
+        (when (looking-back "<\\([a-z]+\\)")
+          (setq tag (match-string 1))))
+      (when tag
+        (insert " ")
+        (nxhtml-complete-tag-do-also tag)))))
 
 (defun nxhtml-complete-tag-do-also (tag)
   ;; First required attributes:
@@ -1576,36 +1665,6 @@ occurence of a tag name is used.")
     (when tagrec
       (funcall (cadr tagrec))))
   )
-
-(defun nxhtml-turn-onoff-tag-do-also (on)
-  (add-hook 'nxhtml-mode-hook 'nxhtml-check-tag-do-also)
-  (dolist (b (buffer-list))
-    (when (with-current-buffer b
-            (eq major-mode 'nxhtml-mode))
-      (if on
-          (progn
-            (add-hook 'rngalt-complete-tag-hooks 'nxhtml-complete-tag-do-also t t)
-            )
-        (remove-hook 'rngalt-complete-tag-hooks 'nxhtml-complete-tag-do-also t)
-        ))))
-
-(define-toggle nxhtml-tag-do-also t
-  "When completing tag names do some more if non-nil.
-For some tag names additional things can be done at completion to
-speed writing up.  For example for an <img ...> tag `nxhtml-mode'
-can prompt for src attribute and add width and height attributes
-if this attribute points to a local file.
-
-You can add additional elisp code for completing to
-`nxhtml-complete-tag-do-also'."
-  :set (lambda (symbol value)
-         (set-default symbol value)
-         (nxhtml-turn-onoff-tag-do-also value))
-  :group 'nxhtml)
-
-(defun nxhtml-check-tag-do-also ()
-  (when nxhtml-tag-do-also
-    (nxhtml-turn-onoff-tag-do-also t)))
 
 
 ;;;###autoload
@@ -1663,12 +1722,13 @@ This mode may be turned on automatically in two ways:
                                    table
                                    &optional predicate require-match
                                    initial-input hist def inherit-input-method)
-  (popcmp-completing-read prompt
-                          table
-                          predicate require-match
-                          initial-input hist def inherit-input-method
-                          nxhtml-help-tag
-                          nxhtml-tag-sets))
+  (let ((popcmp-in-buffer-allowed t))
+    (popcmp-completing-read prompt
+                            table
+                            predicate require-match
+                            initial-input hist def inherit-input-method
+                            nxhtml-help-tag
+                            nxhtml-tag-sets)))
 
 (defun nxhtml-add-required-to-attr-set (tag)
   (let ((missing (when tag
@@ -1703,6 +1763,7 @@ This mode may be turned on automatically in two ways:
                   (match-string 1))))
          (attr-sets (nxhtml-add-required-to-attr-set tag))
          (help-attr (nxhtml-get-tag-specific-attr-help tag))
+         (popcmp-in-buffer-allowed t)
          )
     (popcmp-completing-read prompt
                             table
@@ -1717,9 +1778,10 @@ This mode may be turned on automatically in two ways:
                                                initial-input hist def inherit-input-method)
   (let (val)
     (if table
-        (setq val (popcmp-completing-read prompt table
-                                          predicate require-match
-                                          initial-input hist def inherit-input-method))
+        (let ((popcmp-in-buffer-allowed t))
+          (setq val (popcmp-completing-read prompt table
+                                            predicate require-match
+                                            initial-input hist def inherit-input-method)))
       (let* (init
              delimiter
              (lt-pos (save-excursion (search-backward "<" nil t)))
@@ -2264,7 +2326,8 @@ This is called because there was no validation header."
   (with-current-buffer buffer
     (unless nxhtml-current-validation-header
       ;;(message "nxhtml-validation-header-empty")
-      (nxhtml-validation-header-mode -1)
+      (save-match-data ;; runs in timer
+        (nxhtml-validation-header-mode -1))
       ;;(message "No validation header was needed")
       )))
 
@@ -2318,6 +2381,7 @@ The function returns true if the condition here is met."
 ;;     ("\.php\\'" nxhtml-validation-headers-check)
 ;;     ("\.rhtml\\'" nxhtml-validation-headers-check)
 ;;     ("\.jsp\\'" nxhtml-validation-headers-check)
+;;     ("\.gsp\\'" nxhtml-validation-headers-check)
 ;;     )
 ;;   "Alist for turning on `nxhtml-validation-mode'.
 ;; The entries in the list should have the form
@@ -2666,9 +2730,7 @@ nXhtml and can be opened from the nXhtml menu under
                      (font-size (read-number "Font size (px): " 12))
                      (css-template-file (read-file-name
                                          "CSS template file: "
-                                         (expand-file-name
-                                          "../etc/templates/"
-                                          nxhtml-src-dir)
+                                         (expand-file-name "etc/templates/" nxhtml-install-dir)
                                          nil
                                          t
                                          "rollover-2v.css"

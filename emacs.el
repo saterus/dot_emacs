@@ -96,6 +96,21 @@
   (interactive)
   (kill-ring-save (line-beginning-position) (line-end-position)))
 
+;; rename frame
+;;(add-to-list 'load-path "~/.emacs.d/elisp/frame-cmds/")
+(require 'frame-cmds)
+(global-set-key [(hyper f)] 'rename-frame)
+(global-set-key [(hyper n)] 'new-frame)
+
+(defun maximize-frame ()
+  (interactive)
+  (if (eq (display-pixel-width) 1680)
+      (set-frame-position (selected-frame) -1680 0)
+    (set-frame-position (selected-frame) 0 0))
+  (set-frame-size (selected-frame) 1000 1000))
+(global-set-key [(hyper m)] 'maximize-frame)
+
+
 ;; Beautiful little gem from emacs.wordpress.com
 (defun eval-and-replace ()
   "Replace the preceding sexp with its value."
@@ -245,6 +260,19 @@
 (require 'unbound)
 ;;(describe-unbound-keys 6)
 
+;; Setup nXhtml mode for editing r/html.
+;; (if (eq system-type 'darwin)
+;;     (load "/opt/local/var/macports/software/emacs-app/23.1_0/Applications/MacPorts/Emacs.app/Contents/Resources/site-lisp/nxml/autostart.el")
+(load "~/.emacs.d/elisp/nxhtml/autostart.el")
+(setq nxhtml-global-minor-mode t
+      mumamo-chunk-coloring 'submode-colored
+      nxhtml-skip-welcome t
+      indent-region-mode t
+      rng-nxml-auto-validate-flag nil
+      nxml-degraded t)
+(add-to-list 'auto-mode-alist '("\\.*html\\.erb\\'" . eruby-nxhtml-mumamo))
+(add-to-list 'auto-mode-alist '("\\.rhtml'" . eruby-nxhtml-mumamo))
+
 ;; Setup Color Scheme for Emacs
 (defvar color-theme-already-setup nil)
 (unless color-theme-already-setup
@@ -292,7 +320,10 @@
        (w3m-header-line-location-title-face ((t (:background "#000000"))))
        (ascii-non-ascii-face ((t (:background "#FFFF00"))))
        (mumamo-background-chunk-major ((f nil)))
-       (mumamo-background-chunk-submode ((((class color) (min-colors 88) (background dark)) (:background "#101010"))))
+       (mumamo-background-chunk-submode1 ((((class color) (min-colors 88) (background dark)) (:background "#102020"))))
+       (mumamo-background-chunk-submode2 ((((class color) (min-colors 88) (background dark)) (:background "#102020"))))
+       (mumamo-background-chunk-submode3 ((((class color) (min-colors 88) (background dark)) (:background "#102020"))))
+       (mumamo-background-chunk-submode4 ((((class color) (min-colors 88) (background dark)) (:background "#201010"))))
        (minibuffer-prompt ((t (:foreground "#2070B8"))))
        (erc-prompt-face ((t (:bolt t :foreground "#ffffff" :background "#116611"))))
        ;; (erc-current-nick-face ((t (:bold t :foreground "yellow" :weight bold))))
@@ -417,18 +448,6 @@
 (autoload 'js2-mode "js2" nil t)
 (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
 
-;; Setup nXhtml mode for editing r/html.
-(if (eq system-type 'darwin)
-    (load "/opt/local/var/macports/software/emacs-app/23.1_0/Applications/MacPorts/Emacs.app/Contents/Resources/site-lisp/nxml/autostart.el")
-    (load "~/.emacs.d/elisp/nxhtml/autostart.el"))
-(setq nxhtml-global-minor-mode t
-      mumamo-chunk-coloring 'submode-colored
-      nxhtml-skip-welcome t
-      indent-region-mode t
-      rng-nxml-auto-validate-flag nil
-      nxml-degraded t)
-     (add-to-list 'auto-mode-alist '("\\.*html\\.erb\\'" . eruby-nxhtml-mumamo))
-
 ;; This adds an extra keybinding to interactive search (C-s).
 ;; That runs occur on the current search string/regexp.
 ;; Shows all hits immediately in the entire buffer.
@@ -443,10 +462,16 @@
 (load "~/.emacs.d/elisp/haskell-mode/haskell-site-file")
 (add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
 (add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
-(add-hook 'haskell-mode-hoook 'turn-on-haskell-indentation)
+(add-hook 'haskell-mode-hook 'turn-on-haskell-indentation)
 (add-hook 'haskell-mode-hook 'font-lock-mode)
 (setq haskell-program-name "ghci")
-
+(add-hook 'haskell-mode-hook (lambda ()
+;; TODO: check prev char and if its a space, don't insert a space
+;; if not a space, insert a space and then the arrow
+                               (define-key haskell-mode-map [(control c) (\.)]
+                                 (lambda ()
+                                   (interactive)
+                                   (insert "-> ")))))
 
 ;; (load "~/.emacs.d/elisp/thingatpt+")
 ;;(require 'browse-apropos-url)
@@ -502,28 +527,28 @@
  ("OPEN" :foreground "blue" :weight bold))))
 
 ;; clojure-mode
-(unless (eq clojure-home nil)
-  (add-to-list 'load-path "~/Library/Clojure/clojure-mode/clojure-mode")
-  (require 'clojure-mode)
+;; (unless (eq clojure-home nil)
+;;   (add-to-list 'load-path "~/Library/Clojure/clojure-mode/clojure-mode")
+;;   (require 'clojure-mode)
 
-  ;; swank-clojure
-  (add-to-list 'load-path "~/Library/Clojure/swank/swank-clojure")
-  (require 'swank-clojure-autoload)
-  (swank-clojure-config
-   (setq swank-clojure-jar-path "~/Library/Clojure/lib/clojure.jar")
-   (setq swank-clojure-extra-classpaths
-         (list "~/Library/Clojure/lib/clojure-contrib.jar" "~/rapleaf/jars/dev")))
+;;   ;; swank-clojure
+;;   (add-to-list 'load-path "~/Library/Clojure/swank/swank-clojure")
+;;   (require 'swank-clojure-autoload)
+;;   (swank-clojure-config
+;;    (setq swank-clojure-jar-path "~/Library/Clojure/lib/clojure.jar")
+;;    (setq swank-clojure-extra-classpaths
+;;          (list "~/Library/Clojure/lib/clojure-contrib.jar" "~/rapleaf/jars/dev")))
 
-  ;; slime
-  (eval-after-load "slime"
-    '(progn (slime-setup '(slime-repl))))
+;;   ;; slime
+;;   (eval-after-load "slime"
+;;     '(progn (slime-setup '(slime-repl))))
 
-  (add-to-list 'load-path "~/Library/Clojure/slime/slime")
-  (require 'slime)
-  (slime-setup))
+;;   (add-to-list 'load-path "~/Library/Clojure/slime/slime")
+;;   (require 'slime)
+;;   (slime-setup))
 
 ;; w3m
-;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/w3m")
+(add-to-list 'load-path "/usr/share/emacs/site-lisp/w3m")
 (if window-system
     (autoload 'w3m "w3m-load.el" "w3m Browser." t))
 (eval-after-load "w3m-load.el"

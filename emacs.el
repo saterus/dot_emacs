@@ -23,21 +23,21 @@
 
 ;; Hide Toolbar
 (tool-bar-mode -1)
-(menu-bar-mode -1)
+;; (menu-bar-mode -1)
 (scroll-bar-mode -1)
 
 ;; Transient Mark Mode
 (transient-mark-mode t)
 
-;; Line-wrapping
-(set-default 'fill-column 80)
-;;(auto-fill-mode t)
-
 ;; Display line numberss, column numbers, and trailing whitespace
 (setq line-number-mode    t)
 (setq column-number-mode  t)
-(setq show-trailing-whitespace t)
+(setq-default show-trailing-whitespace t)
 (global-set-key [(hyper w)] 'delete-trailing-whitespace)
+(setq-default cursor-type 'bar)
+(setq default-truncate-lines t)
+(setq-default automatic-hscrolling t)
+
 
 ;; Tabs expand into spaces.
 ;; Type C-q C-i to insert a horizontal tab character.
@@ -71,8 +71,8 @@
              (cd current-dir)))
 
 ;; Line Numbers
-;;(require 'linum)
 (global-linum-mode 1)
+(add-hook 'after-change-major-mode-hook 'linum-on)
 
 ;; Fix meta/hyper keys for osx
 ;; TODO: add check for window system so i dont have to reload .emacs after initialization
@@ -108,7 +108,7 @@
 (defun maximize-frame ()
   (interactive)
   (if (eq (display-pixel-width) 1680)
-      (set-frame-position (selected-frame) -1680 0)
+      (set-frame-position (selected-frame) 1440 0)
     (set-frame-position (selected-frame) 0 0))
   (set-frame-size (selected-frame) 1000 1000))
 (global-set-key [(hyper m)] 'maximize-frame)
@@ -125,6 +125,22 @@
     (error (message "Invalid expression")
            (insert (current-kill 0)))))
 (global-set-key (kbd "C-c e") 'eval-and-replace)
+
+(defun craft-regexp ()
+  "Uses regexp-opt to create a regexp from a list of strings."
+  (interactive)
+  (let ((collect-arg (lambda ()
+                      (read-regexp "Enter regex (blank to insert): ")))
+        (collect-args (lambda (&optional acc)
+                        (let ((val (collect-arg))
+                              (lst (if (nil? acc) '() acc))))
+                        (if (nil? val)
+                            lst
+                          (collect-args (cons val lst)))))
+        (args (collect-args))))
+  (if (nil? args)
+      (error (message "You must enter at least one regexp."))
+    (regexp-opt args)))
 
 ;; Kill buffer, window, and go back to previous buffer. Handy for temporary buffers or dired-open buffers.
 (defun kill-buffer-and-window ()
@@ -160,6 +176,125 @@
 (ido-load-history t)
 (ido-mode t)
 
+;; From: http://stackoverflow.com/questions/905338/can-i-use-ido-completing-read-instead-of-completing-read-everywhere/907060
+(defvar ido-enable-replace-completing-read t
+  "If t, use ido-completing-read instead of completing-read if possible.
+
+  Set it to nil using let in around-advice for functions where the
+  original completing-read is required.  For example, if a function
+  foo absolutely must use the original completing-read, define some
+  advice like this:
+
+  (defadvice foo (around original-completing-read-only activate)
+    (let (ido-enable-replace-completing-read) ad-do-it))")
+
+;; Replace completing-read wherever possible, unless directed otherwise
+(defadvice completing-read
+  (around use-ido-when-possible activate)
+  (if (or (not ido-enable-replace-completing-read) ; Manual override disable ido
+          (boundp 'ido-cur-list)) ; Avoid infinite loop from ido calling this
+      ad-do-it
+    (let ((allcomp (all-completions "" collection predicate)))
+      (if allcomp
+          (setq ad-return-value
+                (ido-completing-read prompt
+                               allcomp
+                               nil require-match initial-input hist def))
+        ad-do-it))))
+
+;; (defun ido-goto-symbol ()
+;;     "Will update the imenu index and then use ido to select a symbol to navigate to"
+;;     (interactive)
+;;     (imenu--make-index-alist)
+;;     (let ((name-and-pos '())
+;;           (symbol-names '()))
+;;       (flet ((addsymbols (symbol-list)
+;;                          (when (listp symbol-list)
+;;                            (dolist (symbol symbol-list)
+;;                              (let ((name nil) (position nil))
+;;                                (cond
+;;                                 ((and (listp symbol) (imenu--subalist-p symbol))
+;;                                  (addsymbols symbol))
+
+;;                                 ((listp symbol)
+;;                                  (setq name (car symbol))
+;;                                  (setq position (cdr symbol)))
+
+;;                                 ((stringp symbol)
+;;                                  (setq name symbol)
+;;                                  (setq position (get-text-property 1 'org-imenu-marker symbol))))
+
+;;                                (unless (or (null position) (null name))
+;;                                  (add-to-list 'symbol-names name)
+;;                                  (add-to-list 'name-and-pos (cons name position))))))))
+;;         (addsymbols imenu--index-alist))
+;;       (let* ((selected-symbol (ido-completing-read "Symbol? " symbol-names))
+;;              (position (cdr (assoc selected-symbol name-and-pos))))
+;;         (goto-char position))))
+(defun ido-goto-symbol (&optional symbol-list)
+      "Refresh imenu and jump to a place in the buffer using Ido."
+      (interactive)
+      (unless (featurep 'imenu)
+        (require 'imenu nil t))
+      (cond
+       ((not symbol-list)
+        (let ((ido-mode ido-mode)
+              (ido-enable-flex-matching
+               (if (boundp 'ido-enable-flex-matching)
+                   ido-enable-flex-matching t))
+              name-and-pos symbol-names position)
+          (unless ido-mode
+            (ido-mode 1)
+            (setq ido-enable-flex-matching t))
+          (while (progn
+                   (imenu--cleanup)
+                   (setq imenu--index-alist nil)
+                   (ido-goto-symbol (imenu--make-index-alist))
+                   (setq selected-symbol
+                         (ido-completing-read "Symbol? " symbol-names))
+                   (string= (car imenu--rescan-item) selected-symbol)))
+          (unless (and (boundp 'mark-active) mark-active)
+            (push-mark nil t nil))
+          (setq position (cdr (assoc selected-symbol name-and-pos)))
+          (cond
+           ((overlayp position)
+            (goto-char (overlay-start position)))
+           (t
+            (goto-char position)))))
+       ((listp symbol-list)
+        (dolist (symbol symbol-list)
+          (let (name position)
+            (cond
+             ((and (listp symbol) (imenu--subalist-p symbol))
+              (ido-goto-symbol symbol))
+             ((listp symbol)
+              (setq name (car symbol))
+              (setq position (cdr symbol)))
+             ((stringp symbol)
+              (setq name symbol)
+              (setq position
+                    (get-text-property 1 'org-imenu-marker symbol))))
+            (unless (or (null position) (null name)
+                        (string= (car imenu--rescan-item) name))
+              (add-to-list 'symbol-names name)
+              (add-to-list 'name-and-pos (cons name position))))))))
+(global-set-key "\M-p" 'ido-goto-symbol)
+
+
+(defun add-watchwords ()
+  (font-lock-add-keywords
+   nil '(("\\(FIX\\|TODO\\|FIXME\\|HACK\\|DEBUG\\|REFACTOR\\)"
+          1 font-lock-warning-face t))))
+
+(add-hook 'elisp-hook 'add-watchwords)
+(add-hook 'ruby-hook 'add-watchwords)
+
+;; Insert debug statement.
+(defun ruby-debug-statement ()
+  (interactive)
+  (insert "(require 'ruby-debug'; debugger;) # DEBUG-TODO: REMOVE DEBUG STATEMENT")
+  (search-backward "#"))
+
 (add-to-list 'load-path "~/.emacs.d/elisp/ruby-mode/")
 ;; (require 'ruby-mode)
 ;; (require 'ruby-electric)
@@ -168,7 +303,7 @@
 (autoload 'ruby-electric-mode "ruby-electric.el" "completes braces and such"  t)
 (setq ri-ruby-script "~/.emacs.d/elisp/ruby-mode/ri-emacs.rb")
 (autoload 'ri "ri-ruby.el" "ri docs inside emacs!"  t)
-(add-hook 'ruby-mode-hook 'ruby-electric-mode)
+(add-hook 'ruby-mode-hook (lambda () (ruby-electric-mode t)))
 (add-hook 'ruby-mode-hook (lambda ()
                             (local-set-key [(meta i)] 'ri)
                             (local-set-key [(meta o)] 'ri-ruby-complete-symbol)
@@ -176,7 +311,12 @@
 (eval-after-load "ruby-electric"
   '(progn
      (define-key ruby-mode-map [(control j)] 'backward-char)
+     (define-key ruby-mode-map "\C-cr" 'ruby-debug-statement)
      (define-key ruby-mode-map [(control x) (control t)] 'transpose-lines)))
+
+
+
+
 
 (add-to-list 'load-path "~/.emacs.d/elisp/rdebug/")
 ;;(autoload 'rdebug "rdebug.el" "rdebug mode" t)
@@ -268,7 +408,7 @@
 (require 'unbound)
 ;;(describe-unbound-keys 6)
 
-;; Setup nXhtml mode for editing r/html.
+;Setup: nXhtml mode for editing r/html.
 ;; (if (eq system-type 'darwin)
 ;;     (load "/opt/local/var/macports/software/emacs-app/23.1_0/Applications/MacPorts/Emacs.app/Contents/Resources/site-lisp/nxml/autostart.el")
 (load "~/.emacs.d/elisp/nxhtml/autostart.el")
@@ -281,84 +421,35 @@
 (add-to-list 'auto-mode-alist '("\\.*html\\.erb\\'" . eruby-nxhtml-mumamo))
 (add-to-list 'auto-mode-alist '("\\.rhtml'" . eruby-nxhtml-mumamo))
 
+;; Setup Haml Mode
+(load "~/.emacs.d/elisp/haml/extra/haml-mode.el")
+(load "~/.emacs.d/elisp/haml/extra/sass-mode.el")
+(add-to-list 'auto-mode-alist '("\\.haml'" . eruby-haml-mumamo))
+(add-to-list 'auto-mode-alist '("\\.scss'" . sass-mode))
+(add-to-list 'auto-mode-alist '("\\.sass'" . sass-mode))
+
 ;; Setup Color Scheme for Emacs
-(defvar color-theme-already-setup nil)
-(unless color-theme-already-setup
-  (require 'color-theme)
-  (setq color-theme-is-global t)
-  ;;    (set-frame-font "Consolas-13")
-  (set-face-attribute 'default nil :height 100)
-  (defun color-theme-custom-dark ()
-    (interactive)
-    (color-theme-install
-     '(color-theme-custom-dark
-       ((foreground-color . "#DDDDDD")
-        (background-color . "#0F0F0F")
-        (background-mode . light)
-        (cursor-color . "#444444"))
-       (bold ((t (:bold t))))
-       (bold-italic ((t (:italic t :bold t))))
-       (default ((t (nil))))
-       (font-lock-builtin-face ((t (:italic t :foreground "#a96da0"))))
-       (font-lock-comment-face ((t (:italic t :foreground "#666666"))))
-       (font-lock-comment-delimiter-face ((t (:foreground "#666666"))))
-       (font-lock-constant-face ((t (:bold t :foreground "#197b6e"))))
-       (font-lock-doc-string-face ((t (:foreground "#666666"))))
-       (font-lock-doc-face ((t (:foreground "#666666"))))
-       (font-lock-reference-face ((t (:foreground "white"))))
-       (font-lock-function-name-face ((t (:foreground "#883333"))))
-       (font-lock-keyword-face ((t (:bold t :foreground "#bb4400"))))
-       (font-lock-preprocessor-face ((t (:foreground "#e3ea94"))))
-       (font-lock-string-face ((t (:foreground "#33CC44"))))
-       (font-lock-type-face ((t (:bold t :foreground "#888822"))))
-       (font-lock-variable-name-face ((t (:foreground "#2070B8"))))
-       (font-lock-warning-face ((t (:bold t :italic nil :underline nil :background "#AA0000"))))
-       (hl-line ((t (:foreground nil :background "#000000"))))
-       (mode-line ((t (:foreground "#ffffff" :background "#333333"))))
-       (mode-line-highlight ((t (:foreground "#cc5500" :background "#333333"))))
-       (mode-line-inactive ((t (:foreground "#bbbbbb" :background "#111111"))))
-       (region ((t (:foreground nil :background "#333333"))))
-       (isearch ((t (:bold t :background "#163B65" :foreground "#FFFF00"))))
-       (isearch-lazy-highlight-face ((t (:background "#163B65" :foreground "#FFFFFF"))))
-       (ido-first-match ((t (:foreground "#eeee33"))))
-       (ido-only-match ((t (:foreground "#cc5500"))))
-       (w3m-anchor-face ((t (:foreground "#803A00"))))
-       (w3m-arrived-anchor-face ((t (:foreground "#501A00"))))
-       (w3m-header-line-location-content-face ((t (:background "#0F0F0F"))))
-       (w3m-header-line-location-title-face ((t (:background "#000000"))))
-       (ascii-non-ascii-face ((t (:background "#FFFF00"))))
-       (mumamo-background-chunk-major ((f nil)))
-       (mumamo-background-chunk-submode1 ((((class color) (min-colors 88) (background dark)) (:background "#102020"))))
-       (mumamo-background-chunk-submode2 ((((class color) (min-colors 88) (background dark)) (:background "#102020"))))
-       (mumamo-background-chunk-submode3 ((((class color) (min-colors 88) (background dark)) (:background "#102020"))))
-       (mumamo-background-chunk-submode4 ((((class color) (min-colors 88) (background dark)) (:background "#201010"))))
-       (minibuffer-prompt ((t (:foreground "#2070B8"))))
-       (erc-prompt-face ((t (:bolt t :foreground "#ffffff" :background "#116611"))))
-       ;; (erc-current-nick-face ((t (:bold t :foreground "yellow" :weight bold))))
-       ;; (erc-default-face ((t (nil))))
-       ;; (erc-direct-msg-face ((t (:foreground "pale green"))))
-       ;; (erc-error-face ((t (:bold t :foreground "IndianRed" :weight bold))))
-       ;; (erc-highlight-face ((t (:bold t :foreground "pale green" :weight bold))))
-       ;; (erc-input-face ((t (:foreground "light blue"))))
-       ;; (erc-inverse-face ((t (:background "steel blue"))))
-       ;; (erc-notice-face ((t (:foreground "light salmon"))))
-       ;; (erc-pal-face ((t (:foreground "pale green"))))
-       ;; (erc-prompt-face ((t (:bold t :foreground "light blue" :weight bold))))
-       ;; (erc-underline-face ((t (:underline t))))
-       (twitter-header-face ((t (:background "#0F0F0F"))))
-       (twitter-user-name-face ((t (:background "#0F0F0F"))))
-       (twitter-time-stamp-face ((t (:background "#0F0F0F"))))
-       (twitter-status-overlong-face ((t (:background "#0F0F0F"))))
-       (twitter-new-tweets-sep-face ((t (:background "#0F0F0F"))))
-       (show-paren-match-face ((t (:bold t :foreground "#ffffff"
-                                         :background "#050505")))))))
-  (color-theme-custom-dark)
-  (setq color-theme-already-setup t))
+(require 'color-theme)
+(setq color-theme-is-global t)
+(color-theme-initialize)
+(require 'color-theme-anb-dark)
+(require 'color-theme-anb-light)
+;; (color-theme-anb-dark)
+(color-theme-anb-light)
+
+;; (set-frame-font "Consolas-13")
+(set-frame-font "Andale Mono")
+(set-face-attribute 'default nil :height 110)
+
+  ;; (color-theme-pierson)
+  ;; (color-theme-custom-dark)
+
+
 ;; TODO: Add commented out light color scheme so I can use projectors with normal people.
 
 ;; highlight the current line; set a custom face, so we can
 ;; recognize from the normal marking (selection)
-(setq hl-line-face 'hl-line)
+(setq hl-line-face 'hl-line) ;; ((t (:foreground nil :background "#FFFFFF"))))
 (global-hl-line-mode t) ; turn it on for all modes by default
 
 ;; Goto line
@@ -367,17 +458,15 @@
 ;; M-g runs `M-x goto-line'
 (global-set-key "\M-g" 'goto-line)
 
+;; Bind Repeat Complex Command
+(global-set-key "\C-z" 'repeat-complex-command)
+
 ;; Insert group
 (fset 'InsertRegexGroup
    (lambda (&optional arg) "Inserts a plain regex group. \(.+\)" (interactive "p") (kmacro-exec-ring-item (quote ("\\(.+\\)" 0 "%d")) arg)))
 (global-set-key "\M-G" 'InsertRegexGroup)
 
-;; Insert debug statement.
-;; (defun ruby-debug-statement ()
-;;   (interactive)
-;;   (insert "(require 'ruby-debug'; debugger;) # DEBUG-TODO: REMOVE DEBUG STATEMENT")
-;;   (search-backward "#"))
-;; (define-key ruby-mode-map "\C-cr" 'ruby-debug-statement)
+
 
 ;; Woo, in place thrift struct conversion!
 (defun convert-thrift-struct (&optional use-file)
@@ -404,7 +493,7 @@
   "wrap region with <sometag>YOUR CONTENT</sometag"
   (interactive "r\nMTag: ")
   (wrap-region b e (format "<%s>" tag) (format "</%s>" tag)))
-(global-set-key "\C-xx" 'wrap-xml-brackets)
+(global-set-key "\M-n" 'wrap-xml-brackets)
 
 (defun wrap-thrift-replacement-brackets (b e)
   "wrap region with {-- --}"
@@ -436,6 +525,16 @@
 ;; Use C-x C-f "/su::/path/to/file".
 (require 'tramp)
 (setq tramp-default-method "ssh")
+;; find-alternative-file-with-sudo from http://www.emacswiki.org/emacs/TrampMode
+(defun find-alternative-file-with-sudo ()
+  (interactive)
+  (when buffer-file-name
+    (find-alternate-file
+     (concat "/sudo:root@localhost:"
+	     buffer-file-name))))
+(global-set-key (kbd "C-x C-r") 'find-alternative-file-with-sudo)
+(global-set-key (kbd "C-x C-S-r") 'ido-find-file-read-only)
+
 
 ;; Open all dired directories in the same buffer
 (add-hook 'dired-mode-hook
@@ -454,7 +553,7 @@
 (add-to-list 'auto-mode-alist '("Rakefile$" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.gemspec$" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.js.rjs" . ruby-mode))
-(add-to-list 'auto-mode-alist '("irb_tempfile\\..*" . ruby-mode))
+(add-to-list 'auto-mode-alist '("irb_tempfile\\.*" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.irbrc$*" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.thrift$" . c-mode))
 
@@ -649,8 +748,9 @@
 ;; Zen Coding
 (add-to-list 'load-path "~/.emacs.d/elisp/zencoding/")
 (require 'zencoding-mode)
-(add-hook 'eruby-nxhtml-mumamo-mode-hook 'zencoding-mode)
-(add-hook 'nxhtml-mode-hook 'zencoding-mode)
+(add-hook 'sgml-mode-hook (lambda () (zencoding-mode t)))
+;; (add-hook 'eruby-nxhtml-mumamo-mode-hook 'zencoding-mode)
+;; (add-hook 'nxhtml-mode-hook 'zencoding-mode)
 ;; Usage: C-RET => expand
 
 ;; FlySpell Mode
@@ -708,7 +808,13 @@
   (interactive)
   (message (if (y-or-n-p "Do you have a test for that? ") "Good." "Bad!")))
 
-;; highlihghts a column with a line. 
+;;(speedbar-ignored-directory-expressions (quote (".git" ".svn" "[/\\]logs?[/\\]\\'")))
+
+
+;; (require 'psvn)
+;; (require 'vc-git)
+
+;; highlihghts a column with a line.
 ;; kind of annoying.
 ;; (add-to-list 'load-path "~/.emacs.d/elisp/column-marker/")
 ;; (require 'column-marker)
@@ -748,3 +854,4 @@
 ;;   puts ex.message << "\n===Backtrace: #{ex.backtrace.pretty_inspect}\n===END Backtrace\n"
 ;; end
 ;; (require 'ruby-debug'; debugger;) if $URL_COUNTER == 25 # DEBUG-TODO: REMOVE DEBUG STATEMENT
+

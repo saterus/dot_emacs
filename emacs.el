@@ -113,6 +113,17 @@
   (set-frame-size (selected-frame) 1000 1000))
 (global-set-key [(hyper m)] 'maximize-frame)
 
+;; window commands: these commands make the most sense intuitively if you're in the top-left window.
+(global-set-key [(hyper right)] 'enlarge-window-horizontally)
+(global-set-key [(hyper left)]  'shrink-window-horizontally)
+(global-set-key [(hyper up)]    'shrink-window)
+(global-set-key [(hyper down)]  'enlarge-window)
+
+;; truncate shortcut
+(global-set-key [(hyper t)] 'toggle-truncate-lines)
+
+;; Calc
+(global-set-key [(hyper c)] 'calc)
 
 ;; Beautiful little gem from emacs.wordpress.com
 (defun eval-and-replace ()
@@ -329,6 +340,8 @@
 
 (define-key movement-key-mode-map "\C-h" 'backward-word)
 (define-key movement-key-mode-map [(control \')] 'forward-word)
+(define-key movement-key-mode-map [(control meta j)] 'backward-sexp)
+(define-key movement-key-mode-map [(control meta \;)] 'forward-sexp)
 
 (define-key movement-key-mode-map [(meta \h)] help-map)
 
@@ -420,11 +433,15 @@
       nxml-degraded t)
 (add-to-list 'auto-mode-alist '("\\.*html\\.erb\\'" . eruby-nxhtml-mumamo))
 (add-to-list 'auto-mode-alist '("\\.rhtml'" . eruby-nxhtml-mumamo))
+(add-hook 'eruby-nxhtml-mumamo-mode-hook
+          (lambda ()
+            (local-unset-key [(control enter)] )))
 
 ;; Setup Haml Mode
 (load "~/.emacs.d/elisp/haml/extra/haml-mode.el")
 (load "~/.emacs.d/elisp/haml/extra/sass-mode.el")
 (add-to-list 'auto-mode-alist '("\\.haml'" . eruby-haml-mumamo))
+(add-to-list 'auto-mode-alist '("\\*\\.haml'" . eruby-haml-mumamo))
 (add-to-list 'auto-mode-alist '("\\.scss'" . sass-mode))
 (add-to-list 'auto-mode-alist '("\\.sass'" . sass-mode))
 
@@ -513,7 +530,29 @@
      "Deletes all spaces and tabs between point and next non-whitespace char."
      (interactive "*")
      (delete-region (point) (progn (skip-chars-forward " \t") (point))))
-(global-set-key [(control shift \ )] 'delete-horizontal-whitespace-forward)
+;; (global-set-key [(meta shift space)] 'delete-horizontal-whitespace-forward)
+(global-set-key (kbd "M-S-<SPC>") 'delete-horizontal-whitespace-forward)
+
+(defun rotate-windows ()
+  "Rotate your windows" (interactive) (cond ((not (> (count-windows) 1)) (message "You can't rotate a single window!"))
+ (t
+  (setq i 1)
+  (setq numWindows (count-windows))
+  (while  (< i numWindows)
+    (let* (
+           (w1 (elt (window-list) i))
+           (w2 (elt (window-list) (+ (% i numWindows) 1)))
+           (b1 (window-buffer w1))
+           (b2 (window-buffer w2))
+           (s1 (window-start w1))
+           (s2 (window-start w2))
+           )
+      (set-window-buffer w1  b2)
+      (set-window-buffer w2 b1)
+      (set-window-start w1 s2)
+      (set-window-start w2 s1)
+      (setq i (1+ i)))))))
+(global-set-key [(hyper r)] 'rotate-windows)
 
 ;; Move backups (file.ext~) to a central location.
 (setq backup-directory-alist
@@ -579,7 +618,7 @@
 ;; Setup Haskell Mode
 (load "~/.emacs.d/elisp/haskell-mode/haskell-site-file")
 (add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
-(add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
+;; (add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
 (add-hook 'haskell-mode-hook 'turn-on-haskell-indentation)
 (add-hook 'haskell-mode-hook 'font-lock-mode)
 (setq haskell-program-name "ghci")
@@ -750,8 +789,13 @@
 (require 'zencoding-mode)
 (add-hook 'sgml-mode-hook (lambda () (zencoding-mode t)))
 ;; (add-hook 'eruby-nxhtml-mumamo-mode-hook 'zencoding-mode)
-;; (add-hook 'nxhtml-mode-hook 'zencoding-mode)
+(add-hook 'nxhtml-mode-hook 'zencoding-mode)
 ;; Usage: C-RET => expand
+
+;; autopair
+(add-to-list 'load-path "~/.emacs.d/elisp/autopair")
+(require 'autopair)
+(autopair-global-mode 1) ;; enable autopair in all buffers
 
 ;; FlySpell Mode
 ;; (autoload 'flyspell-mode "flyspell-m

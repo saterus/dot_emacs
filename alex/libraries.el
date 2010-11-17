@@ -1,5 +1,8 @@
+(add-to-list 'load-path "~/.emacs.d/non-elpa-libs/")
 
-(autoload 'browse-kill-ring "browse-kill-ring.el" "" t)
+(autoload 'scratch "scratch-el/scratch" "" t)
+
+(autoload 'browse-kill-ring "browse-kill-ring/browse-kill-ring" "" t)
 ;; (autoload ' "frame-cmds.el" "" t)
 (autoload 'unbound "unbound.el" "" t)
 

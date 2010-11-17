@@ -1,0 +1,6 @@
+[submodule "non-elpa-libs/scratch-el"]
+	path = non-elpa-libs/scratch-el
+	url = https://github.com/ieure/scratch-el.git
+[submodule "non-elpa-libs/browse-kill-ring"]
+	path = non-elpa-libs/browse-kill-ring
+	url = https://github.com/emacsmirror/browse-kill-ring.git

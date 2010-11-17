@@ -60,6 +60,15 @@
 ;; (define-key view-mode-map (kbd "k") 'View-scroll-line-forward)
 ;; (define-key view-mode-map (kbd "l") 'View-scroll-line-backward)
 
+;; This adds an extra keybinding to interactive search (C-s).
+;; That runs occur on the current search string/regexp.
+;; Shows all hits immediately in the entire buffer.
+(define-key isearch-mode-map (kbd "C-o")
+  (lambda ()
+    (interactive)
+    (let ((case-fold-search isearch-case-fold-search))
+      (occur (if isearch-regexp isearch-string
+               (regexp-quote isearch-string))))))
 
 (eval-after-load 'ruby-mode
   '(progn

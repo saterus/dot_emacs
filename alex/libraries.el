@@ -61,6 +61,95 @@
 ;;           (lambda ()
 ;;             (local-unset-key [(control enter)] )))
 
+;; Zen Coding
+(autoload 'zencoding-mode "zencoding-mode.el" "" t)
+;; (add-hook 'sgml-mode-hook (lambda () (zencoding-mode t)))
+;; (add-hook 'eruby-nxhtml-mumamo-mode-hook 'zencoding-mode)
+;; (add-hook 'nxhtml-mode-hook 'zencoding-mode)
+;; Usage: C-RET => expand
+
+
+;; Setup js2 mode
+(autoload 'js2-mode "js2" nil t)
+(add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
+
+;; Java Mode Stuff
+(defun anb-java-mode-hook ()
+  (setq c-basic-offset 2))
+(add-hook 'java-mode-hook 'anb-java-mode-hook)
+
+;; yaml mode
+(autoload 'yaml-mode "yaml-mode.el" "" t)
+(add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode))
+(add-to-list 'auto-mode-alist '("\\.yaml$" . yaml-mode))
+
+(autoload 'wikipedia-mode
+  "wikipedia-mode.el"
+  "Major mode for editing documents in Wikipedia markup." t)
+(eval-after-load "wikipedia-mode.el"
+  '(progn
+     (define-key wikipedia-mode-map [(meta u)] 'upcase-word)))
+(add-to-list 'auto-mode-alist '("\\.wiki$" . wikipedia-mode))
+
+;; Highlight changes mode
+(global-highlight-changes-mode t)
+(setq highlight-changes-visibility-initial-state nil)
+(global-set-key [(hyper h)] 'highlight-changes-visible-mode)
+(global-set-key [(hyper H)] 'highlight-changes-mode)
+(set-face-foreground 'highlight-changes nil)
+(set-face-background 'highlight-changes "#FFFFDD") ; "#201010")
+(set-face-foreground 'highlight-changes-delete nil)
+(set-face-background 'highlight-changes-delete "#FFFFDD") ; "#201010")
+
+
+;; w3m
+;; (add-to-list 'load-path "/usr/share/emacs/site-lisp/w3m")
+;; (if window-system
+;;     (autoload 'w3m "w3m-load.el" "w3m Browser." t))
+;; (eval-after-load "w3m-load.el"
+;;   '(progn
+;;      (global-set-key "\C-xm" 'browse-url-at-point)
+;;      (setq browse-url-browser-function 'w3m-browse-url)
+;;      (setq w3m-use-cookies t)
+;;      (setq w3m-use-title-buffer-name t)
+;;      (setq w3m-use-tab nil)
+;;      (setq w3m-use-tab-menubar nil)
+;;      (setq w3m-default-display-inline-images nil)
+;;      (setq w3m-use-favicon nil)
+;;      (defvar w3m-keys-already-setup nil)
+;;      (add-hook 'w3m-mode
+;;                (lambda ()
+;;                  (unless w3m-keys-already-setup
+;;                      (define-key w3m-mode-map "j" 'backward-char)
+;;                      (define-key w3m-mode-map ";" 'forward-char)
+;;                      (define-key w3m-mode-map "h" 'backward-word)
+;;                      (define-key w3m-mode-map "'" 'forward-word)
+;;                      (define-key w3m-mode-map "k" 'next-line)
+;;                      (define-key w3m-mode-map "l" 'previous-line)
+;;                      (define-key w3m-mode-map "\C-ts" 'w3m-search-new-session)
+;;                      (setq w3m-keys-already-setup t))))))
+
+;; clojure-mode
+;; (unless (eq clojure-home nil)
+;;   (add-to-list 'load-path "~/Library/Clojure/clojure-mode/clojure-mode")
+;;   (require 'clojure-mode)
+
+;;   ;; swank-clojure
+;;   (add-to-list 'load-path "~/Library/Clojure/swank/swank-clojure")
+;;   (require 'swank-clojure-autoload)
+;;   (swank-clojure-config
+;;    (setq swank-clojure-jar-path "~/Library/Clojure/lib/clojure.jar")
+;;    (setq swank-clojure-extra-classpaths
+;;          (list "~/Library/Clojure/lib/clojure-contrib.jar" "~/rapleaf/jars/dev")))
+
+;;   ;; slime
+;;   (eval-after-load "slime"
+;;     '(progn (slime-setup '(slime-repl))))
+
+;;   (add-to-list 'load-path "~/Library/Clojure/slime/slime")
+;;   (require 'slime)
+;;   (slime-setup))
+
 ;; ;;Push the mouse out of the way when the cursor approaches.
 ;; (if window-system
 ;;     (progn

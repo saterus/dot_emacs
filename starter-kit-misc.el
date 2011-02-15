@@ -43,7 +43,7 @@
 ;; (setq browse-url-browser-function 'browse-default-windows-browser)
 ;; (setq browse-url-browser-function 'browse-default-kde)
 ;; (setq browse-url-browser-function 'browse-default-epiphany)
-;; (setq browse-url-browser-function 'browse-default-w3m)
+(setq browse-url-browser-function 'browse-default-w3m)
 ;; (setq browse-url-browser-function 'browse-url-generic
 ;;       browse-url-generic-program "~/src/conkeror/conkeror")
 
@@ -77,6 +77,7 @@
 
 (defvar coding-hook nil
   "Hook that gets run on activation of any programming mode.")
+(add-hook 'coding-mode-hook 'turn-on-auto-fill)
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 (random t) ;; Seed the random-number generator

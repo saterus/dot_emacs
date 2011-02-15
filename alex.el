@@ -50,6 +50,6 @@
 
 ;; (set-frame-font "Inconsolata-g-9")
 ;; (set-frame-font "Liberation Mono-9")
-(set-default-font "DejaVu Sans Mono-9")
+;; (set-default-font "DejaVu Sans Mono-9")
 
 

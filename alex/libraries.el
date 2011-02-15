@@ -1,25 +1,49 @@
-(add-to-list 'load-path "~/.emacs.d/non-elpa-libs/")
+;; Recursively add library subdirectories to the path.
+(defun add-recursive-load-path (path)
+  "Decends through all subdirectories and adds them to the load path."
+  (progn (let ((current-dir (substring (pwd) 10 -1)))
+           (cd path)
+           (normal-top-level-add-subdirs-to-load-path)
+           (cd current-dir)))
+)
+(add-recursive-load-path (concat dotfiles-dir "/non-elpa-libs"))
+(add-recursive-load-path (concat dotfiles-dir "/alex"))
 
-(autoload 'scratch "scratch-el/scratch" "" t)
 
-(autoload 'browse-kill-ring "browse-kill-ring/browse-kill-ring" "" t)
+(autoload 'scratch "scratch" "" t)
+
+;; Resolve CPP Mode
+(autoload 'rcpp-mode "rcpp-mode.el" "" t)
+;; (eval-after-load 'rcpp-mode
+;;   (local-set-key [(f5)] compile))
+(add-to-list 'auto-mode-alist '("\\.cpp$" . rcpp-mode))
+
+(autoload 'browse-kill-ring "browse-kill-ring" "" t)
 ;; (autoload ' "frame-cmds.el" "" t)
 (autoload 'unbound "unbound.el" "" t)
 
 (autoload 'tramp-mode "tramp" "" t)
-(eval-after-load 'tramp
-  (setq tramp-default-method "ssh"))
+;; (eval-after-load 'tramp
+;;   (setq tramp-default-method "ssh2")
+;;   (when (file-directory-p "~/.emacs.d/.tramp-auto-save-directory")
+;;     (setq tramp-auto-save-directory "~/.emacs.d/.tramp-auto-save-directory"))
+;;   (when (file-directory-p "~/.emacs.d/.tramp-backup-directory")
+;;     (setq tramp-backup-directory-alist '(("." . "~/.emacs.d/.tramp-backup-directory"))))
+;; )
 
 ;; Setup Haml Mode
-(autoload 'haml-mode "haml-mode.el" "" t)
-(autoload 'sass-mode "sass-mode.el" "" t)
-(add-to-list 'auto-mode-alist '("\\.haml$" . eruby-haml-mumamo))
-(add-to-list 'auto-mode-alist '("\\*\\.haml$" . eruby-haml-mumamo))
-(add-to-list 'auto-mode-alist '("\\.scss$" . sass-mode))
-(add-to-list 'auto-mode-alist '("\\.sass$" . sass-mode))
+(require 'haml-mode-autoloads)
+(require 'sass-mode-autoloads)
+;; (autoload 'haml-mode "haml-mode.el" "" t)
+;; (autoload 'sass-mode "sass-mode.el" "" t)
+;; (add-to-list 'auto-mode-alist '("\\.haml$" . eruby-haml-mumamo))
+;; (add-to-list 'auto-mode-alist '("\\*\\.haml$" . eruby-haml-mumamo))
+;; (add-to-list 'auto-mode-alist '("\\.scss$" . sass-mode))
+;; (add-to-list 'auto-mode-alist '("\\.sass$" . sass-mode))
 
 (autoload 'haskell-mode "haskell-mode.el" "" t)
 (add-to-list 'auto-mode-alist '("\\.hs$" . haskell-mode))
+(add-to-list 'auto-mode-alist '("\\.l[hg]s$"  . literate-haskell-mode))
 (eval-after-load 'haskell
   (progn
     (add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
@@ -40,35 +64,35 @@
 (setq color-theme-is-global t)
 ;; (color-theme-initialize)
 ;; (require 'color-theme-anb-dark)
-;; (require 'color-theme-anb-light)
+(require 'color-theme-anb-light)
 ;; (color-theme-anb-dark)
-;; (color-theme-anb-light)
+(color-theme-anb-light)
 ;; (set-frame-font "Consolas-13")
-;; (set-frame-font "Andale Mono")
+(set-frame-font "Andale Mono")
 (set-face-attribute 'default nil :height 80)
 
 ;; ruby mode
 (autoload 'ruby-mode "ruby-mode.el" ""  t)
 (autoload 'rinari "rinari.el" "" t)
 
-;; (load "~/.emacs.d/elisp/nxhtml/autostart.el")
-;; (setq nxhtml-global-minor-mode t
-;;       mumamo-chunk-coloring 'submode-colored
-;;       nxhtml-skip-welcome t
-;;       indent-region-mode t
-;;       rng-nxml-auto-validate-flag nil
-;;       nxml-degraded t)
-;; (add-to-list 'auto-mode-alist '("\\.*html\\.erb\\'" . eruby-nxhtml-mumamo))
-;; (add-to-list 'auto-mode-alist '("\\.rhtml'" . eruby-nxhtml-mumamo))
-;; (add-hook 'eruby-nxhtml-mumamo-mode-hook
-;;           (lambda ()
-;;             (local-unset-key [(control enter)] )))
+;; (load "~/.emacs.d/non-elpa-libs/nxhtml/autostart.el")
+(setq nxhtml-global-minor-mode t
+      mumamo-chunk-coloring 'submode-colored
+      nxhtml-skip-welcome t
+      indent-region-mode t
+      rng-nxml-auto-validate-flag nil
+      nxml-degraded t)
+(add-to-list 'auto-mode-alist '("\\.*html\\.erb\\'" . eruby-nxhtml-mumamo))
+(add-to-list 'auto-mode-alist '("\\.rhtml'" . eruby-nxhtml-mumamo))
+(add-hook 'eruby-nxhtml-mumamo-mode-hook
+          (lambda ()
+            (local-unset-key [(control enter)] )))
 
 ;; Zen Coding
 (autoload 'zencoding-mode "zencoding-mode.el" "" t)
-;; (add-hook 'sgml-mode-hook (lambda () (zencoding-mode t)))
-;; (add-hook 'eruby-nxhtml-mumamo-mode-hook 'zencoding-mode)
-;; (add-hook 'nxhtml-mode-hook 'zencoding-mode)
+(add-hook 'sgml-mode-hook (lambda () (zencoding-mode t)))
+(add-hook 'eruby-nxhtml-mumamo-mode-hook 'zencoding-mode)
+(add-hook 'nxhtml-mode-hook 'zencoding-mode)
 ;; Usage: C-RET => expand
 
 
@@ -106,31 +130,31 @@
 
 
 ;; w3m
-;; (add-to-list 'load-path "/usr/share/emacs/site-lisp/w3m")
-;; (if window-system
-;;     (autoload 'w3m "w3m-load.el" "w3m Browser." t))
-;; (eval-after-load "w3m-load.el"
-;;   '(progn
-;;      (global-set-key "\C-xm" 'browse-url-at-point)
-;;      (setq browse-url-browser-function 'w3m-browse-url)
-;;      (setq w3m-use-cookies t)
-;;      (setq w3m-use-title-buffer-name t)
-;;      (setq w3m-use-tab nil)
-;;      (setq w3m-use-tab-menubar nil)
-;;      (setq w3m-default-display-inline-images nil)
-;;      (setq w3m-use-favicon nil)
-;;      (defvar w3m-keys-already-setup nil)
-;;      (add-hook 'w3m-mode
-;;                (lambda ()
-;;                  (unless w3m-keys-already-setup
-;;                      (define-key w3m-mode-map "j" 'backward-char)
-;;                      (define-key w3m-mode-map ";" 'forward-char)
-;;                      (define-key w3m-mode-map "h" 'backward-word)
-;;                      (define-key w3m-mode-map "'" 'forward-word)
-;;                      (define-key w3m-mode-map "k" 'next-line)
-;;                      (define-key w3m-mode-map "l" 'previous-line)
-;;                      (define-key w3m-mode-map "\C-ts" 'w3m-search-new-session)
-;;                      (setq w3m-keys-already-setup t))))))
+(add-to-list 'load-path "/usr/share/emacs/site-lisp/w3m")
+
+(autoload 'w3m "w3m-load.el" "w3m Browser." t)
+(eval-after-load "w3m-load.el"
+  '(progn
+     (global-set-key "\C-xm" 'browse-url-at-point)
+     (setq browse-url-browser-function 'w3m-browse-url)
+     (setq w3m-use-cookies t)
+     (setq w3m-use-title-buffer-name t)
+     (setq w3m-use-tab nil)
+     (setq w3m-use-tab-menubar nil)
+     (setq w3m-default-display-inline-images nil)
+     (setq w3m-use-favicon nil)
+     (defvar w3m-keys-already-setup nil)
+     (add-hook 'w3m-mode
+               (lambda ()
+                 (unless w3m-keys-already-setup
+                     (define-key w3m-mode-map "j" 'backward-char)
+                     (define-key w3m-mode-map ";" 'forward-char)
+                     (define-key w3m-mode-map "h" 'backward-word)
+                     (define-key w3m-mode-map "'" 'forward-word)
+                     (define-key w3m-mode-map "k" 'next-line)
+                     (define-key w3m-mode-map "l" 'previous-line)
+                     (define-key w3m-mode-map "\C-ts" 'w3m-search-new-session)
+                     (setq w3m-keys-already-setup t))))))
 
 ;; clojure-mode
 ;; (unless (eq clojure-home nil)

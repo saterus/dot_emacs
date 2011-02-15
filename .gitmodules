@@ -4,3 +4,6 @@
 [submodule "non-elpa-libs/browse-kill-ring"]
 	path = non-elpa-libs/browse-kill-ring
 	url = https://github.com/emacsmirror/browse-kill-ring.git
+[submodule "non-elpa-libs/haml"]
+	path = non-elpa-libs/haml
+	url = https://github.com/nex3/haml.git

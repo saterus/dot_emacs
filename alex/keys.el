@@ -25,6 +25,9 @@
 (global-set-key [(hyper n)] 'new-frame)
 (global-set-key "\C-x9" 'kill-buffer-and-window)
 (global-set-key [(hyper r)] 'rotate-windows)
+(global-set-key [(hyper c)] 'calc)
+(global-set-key [(hyper b)] 'w3m)
+(global-set-key [(hyper h)] 'highlight-changes-visible-mode)
 (global-set-key [(hyper right)] 'enlarge-window-horizontally)
 (global-set-key [(hyper left)]  'shrink-window-horizontally)
 (global-set-key [(hyper up)]    'shrink-window)
@@ -42,7 +45,7 @@
 (global-set-key "\M-G" 'insert-regexp-group)
 (global-set-key "\C-z" 'repeat-complex-command)
 (global-set-key (kbd "M-S-<SPC>") 'delete-horizontal-whitespace-forward)
-
+(global-set-key (kbd "C-x C-<tab>") 'indent-code-rigidly)
 
 
 
@@ -52,6 +55,9 @@
 
 ;; fix emacs lisp mode's return
 (define-key emacs-lisp-mode-map (kbd "<return>") 'newline)
+
+;; truncate shortcut
+(global-set-key [(hyper t)] 'toggle-truncate-lines)
 
 ;; fix view mode
 ;; (define-key view-mode-map (kbd "C-j") 'backward-char)

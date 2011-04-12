@@ -52,4 +52,5 @@
 ;; (set-frame-font "Liberation Mono-9")
 ;; (set-default-font "DejaVu Sans Mono-9")
 
-
+;; Invaluable for debugging. Keeping here so I remember it.
+;; (setq debug-on-error t)

@@ -4,17 +4,28 @@
   (progn (let ((current-dir (substring (pwd) 10 -1)))
            (cd path)
            (normal-top-level-add-subdirs-to-load-path)
-           (cd current-dir)))
-)
+           (cd current-dir)
+           (message (concat "Added " path)))))
+
 (add-recursive-load-path (concat dotfiles-dir "/non-elpa-libs"))
 (add-recursive-load-path (concat dotfiles-dir "/alex"))
+
+;; Beginning of the el4r block:
+;; RCtool generated this block automatically. DO NOT MODIFY this block!
+;; (add-to-list 'load-path "/home/alex/.rvm/rubies/ruby-1.8.7-p299/share/emacs/site-lisp")
+;; (require 'el4r)
+;; (el4r-boot)
+;; End of the el4r block.
 
 
 (autoload 'scratch "scratch" "" t)
 
 ;; Resolve CPP Mode
 (autoload 'rcpp-mode "rcpp-mode.el" "" t)
-;; (eval-after-load 'rcpp-mode
+(eval-after-load 'rcpp-mode
+  (progn
+    (setq tab-width 2)
+    ))
 ;;   (local-set-key [(f5)] compile))
 (add-to-list 'auto-mode-alist '("\\.cpp$" . rcpp-mode))
 
@@ -23,17 +34,29 @@
 (autoload 'unbound "unbound.el" "" t)
 
 (autoload 'tramp-mode "tramp" "" t)
-;; (eval-after-load 'tramp
-;;   (setq tramp-default-method "ssh2")
-;;   (when (file-directory-p "~/.emacs.d/.tramp-auto-save-directory")
-;;     (setq tramp-auto-save-directory "~/.emacs.d/.tramp-auto-save-directory"))
-;;   (when (file-directory-p "~/.emacs.d/.tramp-backup-directory")
-;;     (setq tramp-backup-directory-alist '(("." . "~/.emacs.d/.tramp-backup-directory"))))
-;; )
+(eval-after-load 'tramp
+  (progn
+    (setq tramp-default-method "ssh2")
+    ;; (defun tramp-find-file-timeout ()
+    ;;   (let* ( ;; We bind the variable `file-name-history' locally so we can
+    ;;          ;; use a separate history list for "root" files.
+    ;;          (name (or buffer-file-name default-directory))
+    ;;          (tramp (and (tramp-tramp-file-p name)
+    ;;                      (tramp-dissect-file-name name)))
+    ;;          path dir file)
+    ;;   (when tramp
+    ;;     (with-timeout (4)
+    ;;       (keyboard-quit)))))
+    ;; (add-hook 'find-file-hook 'tramp-find-file-timeout)
+    ;; (setq tramp-verbose 10)
+    ;; (setq tramp-debug-buffer nil)
+    ))
+
+
 
 ;; Setup Haml Mode
-(require 'haml-mode-autoloads)
-(require 'sass-mode-autoloads)
+;; (require 'haml-mode-autoloads)
+;; (require 'sass-mode-autoloads)
 ;; (autoload 'haml-mode "haml-mode.el" "" t)
 ;; (autoload 'sass-mode "sass-mode.el" "" t)
 ;; (add-to-list 'auto-mode-alist '("\\.haml$" . eruby-haml-mumamo))
@@ -102,8 +125,9 @@
 
 ;; Java Mode Stuff
 (defun anb-java-mode-hook ()
-  (setq c-basic-offset 2))
+  (setq c-basic-offset 4))
 (add-hook 'java-mode-hook 'anb-java-mode-hook)
+(add-hook 'java-mode-hook 'coding-hook)
 
 ;; yaml mode
 (autoload 'yaml-mode "yaml-mode.el" "" t)
@@ -189,52 +213,83 @@
 (setq ido-enable-flex-matching t) ; fuzzy matching is a must have
 
 ;; Setup Ido-Mode for M-x COMMAND
-(setq ido-execute-command-cache nil)
-(defun ido-execute-command ()
-  (interactive)
-  (call-interactively
-   (intern
-    (ido-completing-read
-     "M-x "
-     (progn
-       (unless ido-execute-command-cache
-	 (mapatoms (lambda (s)
-		     (when (commandp s)
-		       (setq ido-execute-command-cache
-			     (cons (format "%S" s) ido-execute-command-cache))))))
-       ido-execute-command-cache)))))
-(add-hook 'ido-setup-hook
-	  (lambda ()
-	    (setq ido-enable-flex-matching t)
-	    (global-set-key "\M-x" 'ido-execute-command)))
+;; (setq ido-execute-command-cache nil)
+;; (defun ido-execute-command ()
+;;   (interactive)
+;;   (call-interactively
+;;    (intern
+;;     (ido-completing-read
+;;      "M-x "
+;;      (progn
+;;        (unless ido-execute-command-cache
+;; 	 (mapatoms (lambda (s)
+;; 		     (when (commandp s)
+;; 		       (setq ido-execute-command-cache
+;; 			     (cons (format "%S" s) ido-execute-command-cache))))))
+;;        ido-execute-command-cache)))))
+;; (add-hook 'ido-setup-hook
+;; 	  (lambda ()
+;; 	    (setq ido-enable-flex-matching t)
+;; 	    (global-set-key "\M-x" 'ido-execute-command)))
+
+;; Display ido results vertically, rather than horizontally
+(setq ido-decorations (quote ("\n-> " "" "\n   " "\n   ..." "[" "]" " [No match]" " [Matched]" " [Not readable]" " [Too big]" " [Confirm]")))
+(defun ido-disable-line-trucation () (set (make-local-variable 'truncate-lines) nil))
+(add-hook 'ido-minibuffer-setup-hook 'ido-disable-line-trucation)
+
+; sort ido filelist by mtime instead of alphabetically
+(add-hook 'ido-make-file-list-hook 'ido-sort-mtime)
+(add-hook 'ido-make-dir-list-hook 'ido-sort-mtime)
+(defun ido-sort-mtime ()
+  (setq ido-temp-list
+        ;; doesn't place nice with tramp mode.
+      (let* ((name ido-current-directory)
+             (tramp (and (tramp-tramp-file-p name)
+                         (tramp-dissect-file-name name)))
+             path dir file)
+        (if (or tramp (string= ido-current-directory "/"))
+            ido-temp-list
+          (sort ido-temp-list
+                (lambda (a b)
+                  (let ((ta (nth 5 (file-attributes (concat ido-current-directory a))))
+                        (tb (nth 5 (file-attributes (concat ido-current-directory b)))))
+                    (if (= (nth 0 ta) (nth 0 tb))
+                        (> (nth 1 ta) (nth 1 tb))
+                      (> (nth 0 ta) (nth 0 tb)))))))))
+  (ido-to-end  ;; move . files to end (again)
+   (delq nil (mapcar
+              (lambda (x) (if (and (not (string-equal x ".")) (string-equal (substring x 0 1) ".")) x))
+              ido-temp-list))))
+
+
 (ido-load-history t)
 (ido-mode t)
 
 ;; From: http://stackoverflow.com/questions/905338/can-i-use-ido-completing-read-instead-of-completing-read-everywhere/907060
-(defvar ido-enable-replace-completing-read t
-  "If t, use ido-completing-read instead of completing-read if possible.
+;; (defvar ido-enable-replace-completing-read t
+;; "If t, use ido-completing-read instead of completing-read if possible.
 
-  Set it to nil using let in around-advice for functions where the
-  original completing-read is required.  For example, if a function
-  foo absolutely must use the original completing-read, define some
-  advice like this:
+;; Set it to nil using let in around-advice for functions where the
+;; original completing-read is required.  For example, if a function
+;; foo absolutely must use the original completing-read, define some
+;; advice like this:
 
-  (defadvice foo (around original-completing-read-only activate)
-    (let (ido-enable-replace-completing-read) ad-do-it))")
+;; (defadvice foo (around original-completing-read-only activate)
+;;   (let (ido-enable-replace-completing-read) ad-do-it))")
 
 ;; Replace completing-read wherever possible, unless directed otherwise
-(defadvice completing-read
-  (around use-ido-when-possible activate)
-  (if (or (not ido-enable-replace-completing-read) ; Manual override disable ido
-          (boundp 'ido-cur-list)) ; Avoid infinite loop from ido calling this
-      ad-do-it
-    (let ((allcomp (all-completions "" collection predicate)))
-      (if allcomp
-          (setq ad-return-value
-                (ido-completing-read prompt
-                               allcomp
-                               nil require-match initial-input hist def))
-        ad-do-it))))
+;; (defadvice completing-read
+;;   (around use-ido-when-possible activate)
+;;   (if (or (not ido-enable-replace-completing-read) ; Manual override disable ido
+;;           (boundp 'ido-cur-list)) ; Avoid infinite loop from ido calling this
+;;       ad-do-it
+;;     (let ((allcomp (all-completions "" collection predicate)))
+;;       (if allcomp
+;;           (setq ad-return-value
+;;                 (ido-completing-read prompt
+;;                                allcomp
+;;                                nil require-match initial-input hist def))
+;;         ad-do-it))))
 
 (defun ido-goto-symbol (&optional symbol-list)
       "Refresh imenu and jump to a place in the buffer using Ido."
@@ -286,3 +341,18 @@
 (global-set-key "\M-p" 'ido-goto-symbol)
 
 
+(require 'smex)
+(smex-initialize)
+
+;; (require 'anything)
+;; (require 'anything-config)
+;; (require 'anything-match-plugin)
+;; (require 'anything-complete)
+;; (require 'descbinds-anything)
+;; (descbinds-anything-install)
+
+
+(setq inferior-lisp-program "/usr/bin/clisp") ; your Lisp system
+;; (add-to-list 'load-path "~/hacking/lisp/slime/")  ; your SLIME directory
+(require 'slime)
+(slime-setup)

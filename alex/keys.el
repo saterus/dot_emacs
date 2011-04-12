@@ -81,6 +81,15 @@
      (define-key ruby-mode-map "\C-x\C-t" 'transpose-lines)
      (define-key ruby-mode-map "\C-c\C-r" 'ruby-debug-statement)))
 
+(eval-after-load 'ruby-electric-mode
+  '(progn
+     (define-key ruby-mode-map (kbd "C-j") 'backward-char)))
+
+(eval-after-load 'ruby-electric-mode
+  '(progn
+     (define-key ruby-compilation-minor-mode-map "\C-x\C-t" 'transpose-lines)
+     (define-key ruby-compilation-minor-mode-map [(f5)] 'ruby-compilation-this-test)))
+
 ;; Fix paredit mode bindings
 (eval-after-load 'paredit
   ;; need a binding that works in the terminal
@@ -92,6 +101,28 @@
      (define-key paredit-mode-map (kbd "C-M-'") 'paredit-forward)
      (define-key paredit-mode-map (kbd "C-M-k") 'up-list)
      (define-key paredit-mode-map (kbd "C-M-l") 'backward-down-list)))
+
+(eval-after-load 'smex
+  '(progn
+     (global-set-key (kbd "M-x") 'smex)
+     (global-set-key (kbd "M-X") 'smex-major-mode-commands)
+     ;; This is your old M-x.
+     (global-set-key (kbd "C-c C-c M-x") 'execute-extended-command)
+))
+
+;; uses C-o as the anything-prefix key.
+;; (eval-after-load 'anything
+;;   '(progn
+;;      (define-key movement-key-mode-map [(control \o)] 'anything-command-map)
+;;      (global-unset-key (kbd "C-o"))
+;;      (global-set-key "\C-oo" 'open-line)
+;;      (global-set-key "\C-o\C-o" 'anything)
+;;      ;; (global-set-key "\C-xb" 'anything-mini)
+;;      (eval-after-load 'anything-dabbrev
+;;        '(progn
+;;           (global-set-key (kbd "M-/") 'anything-dabbrev-expand)
+;;           (define-key anything-dabbrev-map "\M-/" 'anything-dabbrev-find-all-buffers)))
+;;      ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

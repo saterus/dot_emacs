@@ -21,3 +21,6 @@ session*
 tramp
 \#*
 history
+elpa-to-submit/**/*
+*backup*
+

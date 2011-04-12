@@ -5,7 +5,8 @@
   (select-window (get-buffer-window "alex*"))
   (search-forward "alex")
   (dired-maybe-insert-subdir "alex")
-  (search-backward "alex.el"))
+  (search-backward "alex.el")
+  (dired-isearch-filenames-regexp))
 
 (defun reload-dot-emacs ()
   "reload ~/.emacs"
@@ -71,7 +72,7 @@
   "Signal a `buffer-read-only' error if the current buffer is read-only."
   (barf-if-buffer-read-only))
 
-(defun insert-regexp-group () 
+(defun insert-regexp-group ()
   (interactive)
   (insert "\\(.+\\)"))
 
@@ -84,6 +85,10 @@
     (goto-char b)
     (insert (format "%s" obracket))))
 
+(defun wrap-char-without-brackets (b e tag)
+  "wrap region with tagYOUR CONTENTtag"
+  (interactive "r\nMTag: ")
+  (wrap-region b e tag tag))
 
 (defun wrap-xml-brackets (b e tag)
   "wrap region with <sometag>YOUR CONTENT</sometag"
@@ -127,7 +132,6 @@
       (set-window-start w2 s1)
       (setq i (1+ i)))))))
 
-
 ;; find-alternative-file-with-sudo from http://www.emacswiki.org/emacs/TrampMode
 (defun find-alternative-file-with-sudo ()
   (interactive)
@@ -136,4 +140,26 @@
      (concat "/sudo:root@localhost:"
 	     buffer-file-name))))
 
+
+
+(defun dec_value (min max)
+  (+ min (random (- max min))))
+
+(defun hex (dec)
+  (cond ((= 10 dec) "A")
+        ((= 11 dec) "B")
+        ((= 12 dec) "C")
+        ((= 13 dec) "D")
+        ((= 14 dec) "E")
+        ((= 15 dec) "F")
+        ((number-to-string dec))))
+
+(defun rand_color ()
+    (concat "#"
+    (hex (dec_value 8 15))
+    (hex (dec_value 8 15))
+    (hex (dec_value 8 15))
+    (hex (dec_value 8 15))
+    (hex (dec_value 8 15))
+    (hex (dec_value 8 15))))
 

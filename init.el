@@ -16,23 +16,22 @@
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 
 ;; Load path etc.
-
+(message "starting to load init.el")
 (setq dotfiles-dir (file-name-directory
                     (or (buffer-file-name) load-file-name)))
 
 ;; Load up ELPA, the package manager
-
+(message "starting to load elpa")
 (add-to-list 'load-path dotfiles-dir)
 
 (add-to-list 'load-path (concat dotfiles-dir "/elpa-to-submit"))
-
+(message "starting to loaddefs")
 (setq autoload-file (concat dotfiles-dir "loaddefs.el"))
 (setq package-user-dir (concat dotfiles-dir "elpa"))
 (setq custom-file (concat dotfiles-dir "custom.el"))
-
+(message "starting package loading")
 (require 'package)
-(dolist (source '(("technomancy" . "http://repo.technomancy.us/emacs/")
-                  ("marmalade" . "http://marmalade-repo.org/packages/")
+(dolist (source '(("marmalade" . "http://marmalade-repo.org/packages/")
                   ("elpa" . "http://tromey.com/elpa/")))
   (add-to-list 'package-archives source t))
 (package-initialize)
@@ -52,7 +51,7 @@
 (require 'dominating-file)
 
 ;; Load up starter kit customizations
-
+(message "loading starter kits")
 (require 'starter-kit-defuns)
 (require 'starter-kit-bindings)
 (require 'starter-kit-misc)
@@ -62,7 +61,7 @@
 (require 'starter-kit-perl)
 (require 'starter-kit-ruby)
 (require 'starter-kit-js)
-
+(message "about to call regen-autoloads")
 (regen-autoloads)
 (load custom-file 'noerror)
 

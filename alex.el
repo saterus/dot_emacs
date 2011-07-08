@@ -6,14 +6,12 @@
       completion-ignored-extensions '(".o" ".elc" "~" ".bin" ".svn" ".obj" ".map" ".a" ".ln" ".class")
       backup-directory-alist `((".*" . ,"~/.emacs.d/backups/"))
       auto-save-file-name-transforms `((".*" ,"~/.emacs.d/backups/" t))
-      hl-line-face 'hl-line
-)
+      hl-line-face 'hl-line)
 
 (setq-default show-trailing-whitespace t
               cursor-type 'bar
               automatic-hscrolling t
-              indent-tabs-mode nil
-              )
+              indent-tabs-mode nil)
 
 (put 'set-goal-column 'disabled nil)
      ;; 'dired-find-alternate-file 'disabled nil)
@@ -21,7 +19,7 @@
 
 ;; global modes & hooks
 (global-hl-line-mode t)
-(global-linum-mode 1)
+(global-linum-mode t)
 (add-hook 'after-change-major-mode-hook 'linum-on)
 
 ;; Open all dired directories in the same buffer

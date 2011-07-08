@@ -1,7 +1,7 @@
 ;;; starter-kit-defuns.el --- Define some custom functions
 ;;
 ;; Part of the Emacs Starter Kit
-
+(message "Entering starter-kit-defuns.el")
 (require 'thingatpt)
 (require 'imenu)
 
@@ -92,6 +92,8 @@ Symbols matching the text at point are put first in the completion list."
 (defun turn-off-tool-bar ()
   (tool-bar-mode -1))
 
+(message "Defined watchwords")
+
 (defun add-watchwords ()
   (font-lock-add-keywords
    nil '(("\\<\\(FIX\\|TODO\\|FIXME\\|HACK\\|REFACTOR\\):"
@@ -108,6 +110,8 @@ Symbols matching the text at point are put first in the completion list."
 (defun run-coding-hook ()
   "Enable things that are convenient across all coding buffers."
   (run-hooks 'coding-hook))
+
+(message "Defined run-coding-hook.")
 
 (defun untabify-buffer ()
   (interactive)
@@ -264,3 +268,4 @@ Symbols matching the text at point are put first in the completion list."
 
 (provide 'starter-kit-defuns)
 ;;; starter-kit-defuns.el ends here
+(message "Leaving starter-kit-defuns.el")

@@ -181,7 +181,7 @@
 ;; Ruby Mode likes to clobber this.
 (define-key movement-key-mode-map "\C-x\C-t" 'transpose-lines)
 
-;; Make iBuffer the fefault buffer view.
+;; Make iBuffer the default buffer view.
 (define-key movement-key-mode-map "\C-x\C-b" 'ibuffer)
 
 ;; find-grep-dired is too useful to not have a hotkey

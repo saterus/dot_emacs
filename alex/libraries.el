@@ -57,30 +57,43 @@
 ;; Setup Haml Mode
 ;; (require 'haml-mode-autoloads)
 ;; (require 'sass-mode-autoloads)
+(add-hook 'sass-mode-hook 'rainbow-mode)
 ;; (autoload 'haml-mode "haml-mode.el" "" t)
 ;; (autoload 'sass-mode "sass-mode.el" "" t)
 ;; (add-to-list 'auto-mode-alist '("\\.haml$" . eruby-haml-mumamo))
 ;; (add-to-list 'auto-mode-alist '("\\*\\.haml$" . eruby-haml-mumamo))
 ;; (add-to-list 'auto-mode-alist '("\\.scss$" . sass-mode))
 ;; (add-to-list 'auto-mode-alist '("\\.sass$" . sass-mode))
+(add-to-list 'auto-mode-alist '("\\.jade$" . haml-mode))
 
-(autoload 'haskell-mode "haskell-mode.el" "" t)
-(add-to-list 'auto-mode-alist '("\\.hs$" . haskell-mode))
-(add-to-list 'auto-mode-alist '("\\.l[hg]s$"  . literate-haskell-mode))
-(eval-after-load 'haskell
-  (progn
-    (add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
-    (add-hook 'haskell-mode-hook 'turn-on-haskell-indentation)
-    (add-hook 'haskell-mode-hook 'font-lock-mode)
-    (setq haskell-program-name "ghci")
-    (add-hook 'haskell-mode-hook
-              (lambda ()
-                ;; TODO: check prev char and if its a space, don't insert a space
-                ;; if not a space, insert a space and then the arrow
-                (define-key haskell-mode-map [(control c) (\.)]
-                  (lambda ()
-                    (interactive)
-                    (insert "-> ")))))))
+;; (autoload 'haskell-mode "haskell-mode.el" "" t)
+;; (add-to-list 'auto-mode-alist '("\\.hs$" . haskell-mode))
+;; (add-to-list 'auto-mode-alist '("\\.l[hg]s$"  . literate-haskell-mode))
+;; (eval-after-load 'haskell
+;;   (progn
+;;     (add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
+;;     (add-hook 'haskell-mode-hook 'turn-on-haskell-indentation)
+;;     (add-hook 'haskell-mode-hook 'font-lock-mode)
+;;     (setq haskell-program-name "ghci")
+;;     (add-hook 'haskell-mode-hook
+;;               (lambda ()
+;;                 ;; TODO: check prev char and if its a space, don't insert a space
+;;                 ;; if not a space, insert a space and then the arrow
+;;                 (define-key haskell-mode-map [(control c) (\.)]
+;;                   (lambda ()
+;;                     (interactive)
+;;                     (insert "-> ")))))))
+
+;; (add-to-list 'load-path "/home/alex/side/haskell-emacs/")
+
+
+
+(add-to-list 'load-path "~/side/haskell-emacs/src")
+(autoload 'hs "hs.el" "Haskell Mode" t)
+(add-to-list 'auto-mode-alist (cons "\\.hs\\'" 'hs-mode))
+(add-to-list 'auto-mode-alist (cons "\\.cabal\\'" 'hs-cabal-mode))
+
+
 
 ;; Setup Color Scheme for Emacs
 (require 'color-theme)
@@ -120,14 +133,8 @@
 
 
 ;; Setup js2 mode
-(autoload 'js2-mode "js2" nil t)
-(add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
-
-;; Java Mode Stuff
-(defun anb-java-mode-hook ()
-  (setq c-basic-offset 4))
-(add-hook 'java-mode-hook 'anb-java-mode-hook)
-(add-hook 'java-mode-hook 'coding-hook)
+;; (autoload 'js2-mode "js2" nil t)
+;; (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
 
 ;; yaml mode
 (autoload 'yaml-mode "yaml-mode.el" "" t)
@@ -356,3 +363,25 @@
 ;; (add-to-list 'load-path "~/hacking/lisp/slime/")  ; your SLIME directory
 (require 'slime)
 (slime-setup)
+
+;; AucTeX mode
+(setq TeX-view-program-selection
+      '((output-dvi "DVI Viewer")
+        (output-pdf "PDF Viewer")
+        (output-html "Google Chrome")))
+(setq TeX-view-program-list
+      '(("DVI Viewer" "evince %o")
+        ("PDF Viewer" "evince %o")
+        ("Google Chrome" "google-chrome %o")))
+
+
+(custom-set-faces
+ '(rainbow-delimiters-depth-1-face ((((background light)) (:foreground "black")) (((background dark)) (:foreground "grey55"))))
+ '(rainbow-delimiters-depth-2-face ((((background light)) (:foreground "#00AAFF")) (((background dark)) (:foreground "#93a8c6"))))
+ '(rainbow-delimiters-depth-3-face ((((background light)) (:foreground "#009D37")) (((background dark)) (:foreground "#b0b1a3"))))
+ '(rainbow-delimiters-depth-4-face ((((background light)) (:foreground "#D67220")) (((background dark)) (:foreground "#97b098"))))
+ '(rainbow-delimiters-depth-5-face ((((background light)) (:foreground "#2053D6")) (((background dark)) (:foreground "#aebed8"))))
+ '(rainbow-delimiters-depth-6-face ((((background light)) (:foreground "#C2EE11")) (((background dark)) (:foreground "#b0b0b3"))))
+ '(rainbow-delimiters-depth-7-face ((((background light)) (:foreground "grey55")) (((background dark)) (:foreground "#90a890"))))
+ '(rainbow-delimiters-depth-8-face ((((background light)) (:foreground "#B811EE")) (((background dark)) (:foreground "#a2b6da"))))
+ '(rainbow-delimiters-depth-9-face ((((background light)) (:foreground "#98EE11")) (((background dark)) (:foreground "#9cb6ad")))))

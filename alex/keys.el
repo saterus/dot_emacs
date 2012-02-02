@@ -7,11 +7,13 @@
 (global-set-key [(meta \#)] 'reload-dot-emacs)
 
 ;; buffers
-(global-set-key "\C-xi" 'prev-buffer)
-(global-set-key "\C-xI" (lambda () (interactive)(prev-buffer 2)))
-(global-set-key "\C-xO" (lambda () (interactive)(prev-buffer -2)))
+(global-set-key "\C-xi" 'prev-window)
+(global-set-key "\C-xI" (lambda () (interactive)(prev-window 2)))
+(global-set-key "\C-xO" (lambda () (interactive)(prev-window -2)))
 (global-set-key (kbd "C-x C-r") 'find-alternative-file-with-sudo)
 (global-set-key (kbd "C-x C-S-r") 'ido-find-file-read-only)
+(global-set-key [(control tab)] 'other-window)
+(global-set-key [(control shift tab)] 'prev-window)
 
 ;; clipboard
 (global-set-key [(super x)] 'clipboard-kill-region)
@@ -41,11 +43,13 @@
 ;; misc
 (global-set-key [(hyper w)] 'delete-trailing-whitespace)
 (global-set-key (kbd "C-c e") 'eval-and-replace)
+(global-set-key (kbd "C-:") 'eval-region)
 (global-set-key "\M-g" 'goto-line)
 (global-set-key "\M-G" 'insert-regexp-group)
 (global-set-key "\C-z" 'repeat-complex-command)
 (global-set-key (kbd "M-S-<SPC>") 'delete-horizontal-whitespace-forward)
 (global-set-key (kbd "C-x C-<tab>") 'indent-code-rigidly)
+(global-set-key [(f5)] 'compile-dwim)
 
 
 
@@ -99,16 +103,27 @@
      (define-key paredit-mode-map (kbd "C-j") 'backward-char)
      (define-key paredit-mode-map (kbd "C-M-h") 'paredit-backward)
      (define-key paredit-mode-map (kbd "C-M-'") 'paredit-forward)
+     (define-key paredit-mode-map (kbd "C-M-f") 'kill-sexp)
+     (define-key paredit-mode-map [(control meta backspace)] 'backward-kill-sexp)
+     (define-key paredit-mode-map [(meta up)] 'move-text-up) ;; requires move-text.el
+     (define-key paredit-mode-map [(meta down)] 'move-text-down)
      (define-key paredit-mode-map (kbd "C-M-k") 'up-list)
      (define-key paredit-mode-map (kbd "C-M-l") 'backward-down-list)))
 
 (eval-after-load 'smex
   '(progn
      (global-set-key (kbd "M-x") 'smex)
-     (global-set-key (kbd "M-X") 'smex-major-mode-commands)
+     (global-set-key (kbd "M-S-c") 'smex-major-mode-commands)
+
      ;; This is your old M-x.
-     (global-set-key (kbd "C-c C-c M-x") 'execute-extended-command)
-))
+     (global-set-key (kbd "C-c C-c M-x") 'execute-extended-command)))
+
+(eval-after-load 'iedit
+  '(progn
+     (define-key global-map (kbd "C-S-s") 'iedit-mode)
+     (define-key isearch-mode-map (kbd "C-S-s") 'iedit-mode)
+     (define-key global-map (kbd "C-M-s") 'query-replace-regexp)
+     (define-key global-map (kbd "C-M-S-s") 'isearch-forward)))
 
 ;; uses C-o as the anything-prefix key.
 ;; (eval-after-load 'anything
@@ -135,6 +150,10 @@
 (define-key movement-key-mode-map [(control \')] 'forward-word)
 (define-key movement-key-mode-map [(control meta j)] 'backward-sexp)
 (define-key movement-key-mode-map [(control meta \;)] 'forward-sexp)
+
+(define-key movement-key-mode-map [(control meta backspace)] 'backward-kill-sexp)
+(define-key movement-key-mode-map [(control meta f)] 'kill-sexp)
+
 
 (define-key movement-key-mode-map [(meta \h)] help-map)
 

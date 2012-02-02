@@ -18,8 +18,8 @@
   (interactive)
   (kill-ring-save (line-beginning-position) (line-end-position)))
 
-(defun prev-buffer (&optional arg)
-  "Analog to C-x-o. Moves back a buffer."
+(defun prev-window (&optional arg)
+  "Analog to C-x-o. Moves backwards a window."
   (interactive "p")
   (let ((step (if arg arg 1)))
     (other-window (- 0 step))))
@@ -57,7 +57,7 @@
   (interactive)
   (kill-buffer)
   (delete-window)
-  (prev-buffer))
+  (prev-window))
 
 ;; Insert debug statement.
 (defun ruby-debug-statement ()
